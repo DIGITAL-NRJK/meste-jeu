@@ -1362,6 +1362,28 @@ input:focus-visible {
   scrollbar-width: none;
 }
 
+.admin-control-deck {
+  display: grid;
+  margin-top: 1rem;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid rgb(242 193 78 / 30%);
+  border-radius: 1.35rem;
+  background: rgb(242 193 78 / 6%);
+}
+
+.admin-control-deck h2 { margin: 0.35rem 0 0; font-family: var(--display-font); font-size: 1.8rem; font-weight: 500; }
+.admin-control-deck p[role="status"] { margin: 0.6rem 0 0; color: var(--text-secondary); font-size: 0.8rem; }
+.admin-control-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+.admin-control-actions button { min-height: 2.8rem; padding: 0 1rem; border: 0; border-radius: 999px; background: var(--brand-accent); color: #132019; cursor: pointer; font-weight: 800; }
+.admin-control-actions button:disabled { cursor: wait; opacity: 0.55; }
+.admin-control-actions .admin-control-danger { border: 1px solid rgb(238 131 121 / 50%); background: transparent; color: #ffaaa2; }
+
+@media (min-width: 48rem) {
+  .admin-control-deck { grid-template-columns: minmax(12rem, 0.7fr) minmax(20rem, 1.3fr); align-items: center; }
+  .admin-control-actions { justify-content: flex-end; }
+}
+
 .admin-shortcuts::-webkit-scrollbar {
   display: none;
 }

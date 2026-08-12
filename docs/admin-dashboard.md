@@ -1,6 +1,6 @@
 # Authentification et dashboard administrateur
 
-La TASK 09 protège l’espace `/admin` et fournit la table de supervision de l’événement. Les commandes qui modifient une session ou une question restent volontairement hors de cette tâche et seront raccordées dans la TASK 10.
+La TASK 09 protège l’espace `/admin` et fournit la table de supervision de l’événement. La TASK 10 complète cet écran avec les commandes de conduite de la session live.
 
 ## Authentification
 
@@ -38,6 +38,8 @@ Il affiche :
 - la répartition de la bibliothèque entre brouillons, revue et questions validées.
 
 `GET /api/admin/dashboard` exige une session administrateur valide et utilise `Cache-Control: no-store`. L’écran se rafraîchit toutes les cinq à sept secondes avec un jitter léger. Les données déjà affichées restent visibles si une actualisation échoue.
+
+La zone « Conduite live » propose l’action principale compatible avec l’état courant, ainsi que les actions critiques disponibles. Chaque commande demande une confirmation, passe par `POST /api/admin/live-control`, puis force une actualisation du dashboard. Les transitions, refus et écritures d’audit restent sous l’autorité du moteur serveur. Le contrat complet est décrit dans `docs/live-control.md`.
 
 ## Validation PostgreSQL
 

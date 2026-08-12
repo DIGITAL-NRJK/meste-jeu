@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 
 import type { AdminIdentity } from "@/server/services/admin-auth";
 import type { AdminDashboard } from "@/server/services/admin-dashboard";
+import type { AdminLiveControlInput } from "@/lib/validation/admin-live-control";
+import { getLiveControlActions } from "@/lib/game/admin-live-controls";
 
 const statusLabels = {
   DRAFT: "Brouillon",
@@ -54,6 +56,8 @@ export function AdminDashboardView({
     initialDashboard.event?.slug ?? "",
   );
   const [stale, setStale] = useState(false);
+  const [commandPending, setCommandPending] = useState(false);
+  const [commandMessage, setCommandMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -114,8 +118,38 @@ export function AdminDashboardView({
     });
   }
 
+  async function runCommand(action: AdminLiveControlInput["action"], label: string) {
+    if (!dashboard.session || !window.confirm(`Confirmer : ${label.toLowerCase()} ?`)) return;
+    setCommandPending(true);
+    setCommandMessage(null);
+    try {
+      const response = await fetch("/api/admin/live-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, sessionId: dashboard.session.id, sessionQuestionId: dashboard.currentQuestion?.id }),
+      });
+      const payload = (await response.json()) as { error?: { message?: string } };
+      if (response.status === 401) {
+        router.replace("/admin/login");
+        return;
+      }
+      if (!response.ok) throw new Error(payload.error?.message ?? "Commande refusée.");
+      const query = selectedEvent ? `?eventSlug=${encodeURIComponent(selectedEvent)}` : "";
+      const refreshed = await fetch(`/api/admin/dashboard${query}`, { cache: "no-store" });
+      if (refreshed.ok) setDashboard((await refreshed.json()) as AdminDashboard);
+      setCommandMessage(`${label} : terminé.`);
+    } catch (error) {
+      setCommandMessage(error instanceof Error ? error.message : "Commande refusée.");
+    } finally {
+      setCommandPending(false);
+    }
+  }
+
   const question = dashboard.currentQuestion;
   const serverTime = Date.parse(dashboard.serverNow);
+  const liveActions = dashboard.session
+    ? getLiveControlActions(dashboard.session.status, question?.status ?? null)
+    : [];
 
   return (
     <main className="admin-page">
@@ -191,6 +225,33 @@ export function AdminDashboardView({
                 <strong>{remainingTime(question?.closesAt ?? null, serverTime)}</strong>
               </div>
             </section>
+
+            {dashboard.session && dashboard.session.status !== "FINISHED" ? (
+              <section
+                className="admin-control-deck"
+                aria-busy={commandPending}
+                aria-labelledby="live-controls-title"
+              >
+                <div>
+                  <p className="eyebrow">Conduite live</p>
+                  <h2 id="live-controls-title">Action suivante</h2>
+                  {commandMessage ? <p role="status">{commandMessage}</p> : null}
+                </div>
+                <div className="admin-control-actions">
+                  {liveActions.map((control) => (
+                    <button
+                      key={control.action}
+                      type="button"
+                      className={control.danger ? "admin-control-danger" : undefined}
+                      disabled={commandPending}
+                      onClick={() => runCommand(control.action, control.label)}
+                    >
+                      {control.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             <nav className="admin-shortcuts" aria-label="Accès rapides">
               <a href="#participants">Participants</a>

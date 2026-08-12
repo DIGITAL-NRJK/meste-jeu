@@ -1,20 +1,27 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
-    <main className="flex min-h-dvh items-center justify-center px-6 py-12">
-      <section className="w-full max-w-md rounded-3xl border border-white/10 bg-[var(--surface)] p-8 shadow-2xl shadow-black/20">
-        <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--brand-accent)]">
-          MESTE présente
-        </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight">
-          Héritage Congo
-        </h1>
-        <p className="mt-4 text-base leading-7 text-[var(--text-secondary)]">
-          Le quiz culturel consacré à la République du Congo.
-        </p>
-        <p className="mt-8 text-sm text-[var(--text-secondary)]">
-          Fondations techniques prêtes. Le parcours joueur sera ajouté dans une
-          tâche dédiée.
-        </p>
+    <main className="landing-page">
+      <div className="landing-river" aria-hidden="true" />
+      <section className="landing-content">
+        <div className="landing-brand">
+          <span className="brand-mark" aria-hidden="true">M</span>
+          <span>MESTE présente</span>
+        </div>
+        <div className="landing-title">
+          <p className="eyebrow">15 août 2026 · Ghana</p>
+          <h1>Héritage<br />Congo</h1>
+          <p>
+            Un voyage vivant à travers l’histoire, les arts et les saveurs de la
+            République du Congo.
+          </p>
+        </div>
+        <Link className="primary-button landing-button" href="/play/heritage-congo-2026">
+          Participer au quiz
+          <span aria-hidden="true">→</span>
+        </Link>
+        <p className="landing-footnote">Pensé pour votre téléphone · Aucun compte requis</p>
       </section>
     </main>
   );

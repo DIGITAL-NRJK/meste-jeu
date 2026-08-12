@@ -83,6 +83,12 @@ Le DTO joueur omet la bonne réponse et l’explication avant la révélation. L
 
 Le serveur calcule le score depuis son heure de réception, met à jour la série et écrit chaque composante dans le ledger. PostgreSQL arbitre les doubles soumissions concurrentes. Une annulation conserve la réponse mais invalide les événements de score associés. Le contrat complet est documenté dans `docs/answer-scoring.md`.
 
+## Interface joueur
+
+La landing mobile mène à `/play/heritage-congo-2026`. Le parcours restaure le joueur après rechargement, propose l’inscription par pseudo, affiche le lobby, synchronise la question active avec un polling jitteré et présente la correction uniquement après `REVEALED`.
+
+Les endpoints légers `GET /api/events/:eventSlug/state` et `GET /api/sessions/:id/current-question` complètent les routes de réponse. Les règles d’interface et de synchronisation sont documentées dans `docs/player-interface.md`.
+
 ## Déploiement Netlify
 
 Netlify détecte Next.js et applique automatiquement l'adaptateur OpenNext. Configurez les variables de `.env.example` dans l'interface Netlify, puis utilisez la commande de build `npm run build` et le répertoire de publication `.next`.
@@ -96,5 +102,6 @@ Le build force Webpack, pris en charge par Next.js, car Turbopack ouvre un port 
 - Bibliothèque de questions : `docs/question-library.md`
 - Moteur de session : `docs/session-engine.md`
 - Réponse et scoring : `docs/answer-scoring.md`
+- Interface joueur : `docs/player-interface.md`
 - Roadmap : `docs/roadmap-v1.md`
 - Instructions agents : `AGENTS.md`

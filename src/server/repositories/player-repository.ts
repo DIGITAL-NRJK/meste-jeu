@@ -6,6 +6,7 @@ import {
   events,
   players,
   playerSessions,
+  scoreEvents,
 } from "../../../db/schema";
 import { getDb } from "@/lib/db/client";
 import {
@@ -143,6 +144,7 @@ async function createRegistration(
         publicCode: row.publicCode,
         nickname: row.nickname,
         currentStreak: row.currentStreak,
+        totalPoints: 0,
       },
       event: {
         slug: row.eventSlug,
@@ -175,6 +177,12 @@ async function findCurrentPlayer(tokenHash: string, now: Date) {
       publicCode: players.publicCode,
       nickname: players.nickname,
       currentStreak: players.currentStreak,
+      totalPoints: sql<number>`(
+        SELECT COALESCE(sum(${scoreEvents.points}), 0)::integer
+        FROM ${scoreEvents}
+        WHERE ${scoreEvents.playerId} = ${players.id}
+          AND ${scoreEvents.voidedAt} IS NULL
+      )`,
       eventSlug: events.slug,
       eventName: events.name,
       eventTimezone: events.timezone,
@@ -213,6 +221,7 @@ async function findCurrentPlayer(tokenHash: string, now: Date) {
       publicCode: session.publicCode,
       nickname: session.nickname,
       currentStreak: session.currentStreak,
+      totalPoints: session.totalPoints,
     },
     event: {
       slug: session.eventSlug,

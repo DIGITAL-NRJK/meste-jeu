@@ -42,6 +42,7 @@ describe("player API", () => {
         publicCode: input.publicCode,
         nickname: input.nickname,
         currentStreak: 0,
+        totalPoints: 0,
       },
       event: {
         slug: input.eventSlug,
@@ -70,7 +71,7 @@ describe("player API", () => {
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
     expect(response.headers.get("set-cookie")).toContain("SameSite=lax");
     expect(body).toMatchObject({
-      player: { nickname: "Makaya", currentStreak: 0 },
+      player: { nickname: "Makaya", currentStreak: 0, totalPoints: 0 },
       event: { slug: "heritage-congo-2026", status: "READY" },
     });
     expect(body).not.toHaveProperty("session");
@@ -112,6 +113,7 @@ describe("player API", () => {
         publicCode: "HC-084200",
         nickname: "Makaya",
         currentStreak: 0,
+        totalPoints: 175,
       },
       event: {
         slug: "heritage-congo-2026",
@@ -135,6 +137,7 @@ describe("player API", () => {
         publicCode: "HC-084200",
         nickname: "Makaya",
         currentStreak: 0,
+        totalPoints: 175,
       },
       event: {
         slug: "heritage-congo-2026",

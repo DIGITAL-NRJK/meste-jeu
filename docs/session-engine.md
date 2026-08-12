@@ -22,7 +22,7 @@ PENDING → OPEN → CLOSED → REVEALED
 
 Le moteur ouvre toujours la première occurrence `PENDING` selon sa position. Une ouverture définit `opens_at` et calcule `closes_at` depuis la durée enregistrée. Une nouvelle question ne peut pas être ouverte tant que la précédente est `OPEN` ou `CLOSED`.
 
-Une occurrence peut être annulée pendant une session `LIVE`, ou après sa fin pour préserver le cas d’une question déjà jouée. L’invalidation des événements de score associés sera ajoutée avec le ledger en TASK 06.
+Une occurrence peut être annulée pendant une session `LIVE`, ou après sa fin pour préserver le cas d’une question déjà jouée. Les réponses restent conservées et tous les événements de score actifs associés sont invalidés par `voided_at` dans la même opération serveur.
 
 PostgreSQL garantit par un index unique partiel qu’une session ne possède jamais deux occurrences `OPEN`, y compris lorsque deux commandes concurrentes arrivent sur des instances serveur différentes.
 

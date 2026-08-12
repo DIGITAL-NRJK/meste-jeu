@@ -15,6 +15,13 @@
       "when": 1786547971971,
       "tag": "0001_absent_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786572813024,
+      "tag": "0002_broken_young_avengers",
+      "breakpoints": true
     }
   ]
 }

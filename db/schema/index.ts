@@ -99,9 +99,15 @@ export const adminUsers = pgTable(
     createdAt: utcTimestamp("created_at").defaultNow().notNull(),
     updatedAt: utcTimestamp("updated_at").defaultNow().notNull(),
     lastLoginAt: utcTimestamp("last_login_at"),
+    failedLoginCount: integer("failed_login_count").default(0).notNull(),
+    lockedUntil: utcTimestamp("locked_until"),
   },
   (table) => [
     uniqueIndex("admin_users_email_unique").on(sql`lower(${table.email})`),
+    check(
+      "admin_users_failed_login_count_nonnegative_check",
+      sql`${table.failedLoginCount} >= 0`,
+    ),
   ],
 );
 

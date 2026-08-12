@@ -32,6 +32,7 @@ npm run test:watch      # Vitest en mode interactif
 npm run test:e2e        # smoke tests Playwright mobile
 npm run build           # build de production Next.js (compilateur Webpack)
 npm run netlify:build   # build local avec le contexte Netlify
+npm run admin:create -- --email ... --name ... # créer un administrateur (interactif)
 npm run db:check        # vérifier l'intégrité de l'historique des migrations
 npm run db:generate     # générer les migrations Drizzle
 npm run db:migrate      # appliquer les migrations Drizzle
@@ -95,6 +96,12 @@ Les endpoints légers `GET /api/events/:eventSlug/state` et `GET /api/sessions/:
 
 Le calcul exclut les scores invalidés et les joueurs désactivés. Le contrat et les règles d’égalité sont documentés dans `docs/leaderboard.md`.
 
+## Administration
+
+L’espace `/admin` est protégé par une session serveur de douze heures. Les mots de passe administrateur sont hashés avec `scrypt`, les tokens bruts restent dans un cookie `HttpOnly` et seule leur empreinte HMAC est stockée. Cinq échecs de connexion verrouillent temporairement le compte.
+
+Le dashboard affiche les participants, l’activité récente, la session et la question courantes, les statistiques de réponse, le Top 10 et l’état de la bibliothèque. Les commandes live seront raccordées dans la TASK 10. Le contrat de sécurité, la création du premier compte et les métriques sont documentés dans `docs/admin-dashboard.md`.
+
 ## Déploiement Netlify
 
 Netlify détecte Next.js et applique automatiquement l'adaptateur OpenNext. Configurez les variables de `.env.example` dans l'interface Netlify, puis utilisez la commande de build `npm run build` et le répertoire de publication `.next`.
@@ -110,5 +117,6 @@ Le build force Webpack, pris en charge par Next.js, car Turbopack ouvre un port 
 - Réponse et scoring : `docs/answer-scoring.md`
 - Interface joueur : `docs/player-interface.md`
 - Classement : `docs/leaderboard.md`
+- Authentification et dashboard admin : `docs/admin-dashboard.md`
 - Roadmap : `docs/roadmap-v1.md`
 - Instructions agents : `AGENTS.md`

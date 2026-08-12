@@ -312,3 +312,31 @@ test("le classement affiche le Top 10, la position personnelle et la portée ses
   await expect(page.getByRole("listitem").nth(0)).toContainText("01");
   await expect(page.getByRole("listitem").nth(1)).toContainText("01");
 });
+
+test("la connexion régie masque le mot de passe et présente une erreur explicite", async ({
+  page,
+}) => {
+  await page.route("**/api/admin/login", async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: {
+          code: "INVALID_CREDENTIALS",
+          message: "Identifiants incorrects.",
+        },
+      }),
+    });
+  });
+
+  await page.goto("/admin/login");
+
+  await expect(page.getByRole("heading", { name: "Entrer en régie" })).toBeVisible();
+  await expect(page.getByText("Accès réservé")).toBeVisible();
+  await page.getByLabel("Adresse email").fill("regie@meste.example");
+  const password = page.getByLabel("Mot de passe");
+  await expect(password).toHaveAttribute("type", "password");
+  await password.fill("mot-de-passe-invalide");
+  await page.getByRole("button", { name: "Ouvrir la régie" }).click();
+  await expect(page.getByText("Identifiants incorrects.", { exact: true })).toBeVisible();
+});

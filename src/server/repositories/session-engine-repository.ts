@@ -60,6 +60,7 @@ type PublicStateRow = {
   closesAt: Date | null;
   revealedAt: Date | null;
   canceledAt: Date | null;
+  acceptingAnswers: boolean;
   categoryName: string | null;
   categorySlug: string | null;
   questionText: string | null;
@@ -778,6 +779,11 @@ async function getPublicState(
       occurrence.closes_at AS "closesAt",
       occurrence.revealed_at AS "revealedAt",
       occurrence.canceled_at AS "canceledAt",
+      COALESCE(
+        occurrence.status = 'OPEN'
+          AND occurrence.closes_at > ${now}::timestamptz,
+        false
+      ) AS "acceptingAnswers",
       category.name AS "categoryName",
       category.slug AS "categorySlug",
       question.question_text AS "questionText",
@@ -862,10 +868,7 @@ async function getPublicState(
     closesAt: row.closesAt,
     revealedAt: row.revealedAt,
     canceledAt: row.canceledAt,
-    acceptingAnswers:
-      row.questionStatus === "OPEN" &&
-      row.closesAt !== null &&
-      row.closesAt > now,
+    acceptingAnswers: row.acceptingAnswers,
     category: { name: row.categoryName, slug: row.categorySlug },
     questionText: row.questionText,
     difficulty: row.difficulty,

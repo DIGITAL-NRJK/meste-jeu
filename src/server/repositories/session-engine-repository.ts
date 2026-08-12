@@ -483,7 +483,8 @@ async function openNextQuestion(
         SET
           status = 'OPEN',
           opens_at = ${now},
-          closes_at = ${now} + candidate.duration_seconds * interval '1 second',
+          closes_at = ${now}::timestamptz
+            + candidate.duration_seconds * interval '1 second',
           revealed_at = NULL,
           canceled_at = NULL
         FROM candidate, state

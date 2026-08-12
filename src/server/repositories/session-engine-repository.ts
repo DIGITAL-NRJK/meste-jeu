@@ -9,6 +9,7 @@ import {
   questionOptions,
   questions,
   quizSessions,
+  scoreEvents,
   sessionQuestions,
 } from "../../../db/schema";
 import { getDb } from "@/lib/db/client";
@@ -661,6 +662,13 @@ async function cancelSessionQuestion(
         AND state.status <> 'CANCELED'
         AND state.session_status IN ('LIVE', 'FINISHED')
       RETURNING occurrence.id, occurrence.quiz_session_id
+    ), voided_scores AS (
+      UPDATE ${scoreEvents} AS score
+      SET voided_at = ${now}
+      FROM updated
+      WHERE score.session_question_id = updated.id
+        AND score.voided_at IS NULL
+      RETURNING score.id
     ), written_audit AS (
       INSERT INTO ${auditLogs} (
         admin_user_id, action, entity_type, entity_id, metadata, created_at
@@ -670,7 +678,9 @@ async function cancelSessionQuestion(
         'QUESTION_CANCELED',
         'session_question',
         updated.id,
-        '{}'::jsonb,
+        jsonb_build_object(
+          'voidedScoreEvents', (SELECT count(*) FROM voided_scores)
+        ),
         ${now}
       FROM updated
       RETURNING id

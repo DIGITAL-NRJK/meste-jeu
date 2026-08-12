@@ -76,6 +76,13 @@ Le moteur serveur crée et configure les sessions, n’accepte que des questions
 
 Le DTO joueur omet la bonne réponse et l’explication avant la révélation. Les interfaces joueur et administrateur seront raccordées dans les tâches dédiées. Le contrat complet est documenté dans `docs/session-engine.md`.
 
+## Réponse et scoring
+
+- `POST /api/session-questions/:id/answer` enregistre atomiquement la première réponse recevable ;
+- `GET /api/session-questions/:id/result` masque la correction jusqu’à l’état `REVEALED`.
+
+Le serveur calcule le score depuis son heure de réception, met à jour la série et écrit chaque composante dans le ledger. PostgreSQL arbitre les doubles soumissions concurrentes. Une annulation conserve la réponse mais invalide les événements de score associés. Le contrat complet est documenté dans `docs/answer-scoring.md`.
+
 ## Déploiement Netlify
 
 Netlify détecte Next.js et applique automatiquement l'adaptateur OpenNext. Configurez les variables de `.env.example` dans l'interface Netlify, puis utilisez la commande de build `npm run build` et le répertoire de publication `.next`.
@@ -88,5 +95,6 @@ Le build force Webpack, pris en charge par Next.js, car Turbopack ouvre un port 
 - Inscription et session joueur : `docs/player-registration.md`
 - Bibliothèque de questions : `docs/question-library.md`
 - Moteur de session : `docs/session-engine.md`
+- Réponse et scoring : `docs/answer-scoring.md`
 - Roadmap : `docs/roadmap-v1.md`
 - Instructions agents : `AGENTS.md`

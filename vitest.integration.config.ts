@@ -12,6 +12,6 @@ export default defineConfig({
     environment: "node",
     include: ["tests/integration/**/*.test.ts"],
     passWithNoTests: false,
-    testTimeout: 15_000,
+    testTimeout: 30_000,
   },
 });

@@ -40,14 +40,15 @@ La base garantit notamment :
 - un auteur administrateur obligatoire pour les ajustements manuels ;
 - la conservation de l'historique grâce à des clés étrangères restrictives.
 
-## Invariants applicatifs à compléter
+## Invariants applicatifs
 
-Certains contrôles portent sur plusieurs tables et seront appliqués dans les services transactionnels des tâches concernées :
+Les services transactionnels appliquent les contrôles portant sur plusieurs tables :
 
 - avant validation, une question doit posséder exactement une bonne réponse et au moins une source ;
 - une proposition enregistrée comme réponse doit appartenir à la question jouée ;
 - le joueur, la session et l'occurrence doivent appartenir au même événement ;
-- le serveur décide de l'ouverture, de la clôture, de la recevabilité et du score.
+- le serveur décide de l'ouverture, de la clôture, de la recevabilité et du score ;
+- une annulation conserve les réponses et invalide les événements de score associés.
 
 PostgreSQL garantit déjà l'anti-double réponse même en cas de concurrence. Les services ne doivent pas remplacer cette contrainte par une simple vérification JavaScript.
 

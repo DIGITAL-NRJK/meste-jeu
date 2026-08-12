@@ -125,18 +125,18 @@ async function getDashboard(event: AdminEventOption, now: Date) {
         player.id,
         player.public_code,
         player.nickname,
-        coalesce(sum(score_event.points) FILTER (
-          WHERE score_event.voided_at IS NULL
+        coalesce((
+          SELECT sum(score_event.points)
+          FROM ${scoreEvents} AS score_event
+          INNER JOIN ${quizSessions} AS score_session
+            ON score_session.id = score_event.quiz_session_id
+          WHERE score_event.player_id = player.id
+            AND score_session.event_id = player.event_id
+            AND score_event.voided_at IS NULL
         ), 0)::integer AS points
       FROM ${players} AS player
-      LEFT JOIN ${quizSessions} AS score_session
-        ON score_session.event_id = player.event_id
-      LEFT JOIN ${scoreEvents} AS score_event
-        ON score_event.player_id = player.id
-        AND score_event.quiz_session_id = score_session.id
       WHERE player.event_id = ${event.id}::uuid
         AND player.status = 'ACTIVE'
-      GROUP BY player.id, player.public_code, player.nickname
     ), ranked_scores AS (
       SELECT
         rank() OVER (ORDER BY points DESC)::integer AS position,

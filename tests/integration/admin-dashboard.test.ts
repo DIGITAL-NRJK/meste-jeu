@@ -50,6 +50,7 @@ const optionIds = [randomUUID(), randomUUID()];
 const sessionId = randomUUID();
 const occurrenceId = randomUUID();
 const playerIds = [randomUUID(), randomUUID()];
+const playerPublicCodes = [`HC-${randomUUID()}`, `HC-${randomUUID()}`];
 const answerId = randomUUID();
 const scoreEventId = randomUUID();
 const adminEmail = `integration-admin-${randomUUID()}@example.com`;
@@ -128,14 +129,14 @@ describe("admin authentication and dashboard with PostgreSQL", () => {
       {
         id: playerIds[0],
         eventId,
-        publicCode: `HC-${randomUUID()}`,
+        publicCode: playerPublicCodes[0],
         nickname: "Makaya intégration",
         lastSeenAt: new Date("2026-08-15T19:58:00.000Z"),
       },
       {
         id: playerIds[1],
         eventId,
-        publicCode: `HC-${randomUUID()}`,
+        publicCode: playerPublicCodes[1],
         nickname: "Sanza intégration",
         lastSeenAt: new Date("2026-08-15T18:00:00.000Z"),
       },
@@ -208,7 +209,20 @@ describe("admin authentication and dashboard with PostgreSQL", () => {
         successRate: 100,
         averageResponseTimeMs: 5_000,
       },
-      leaderboard: [{ position: 1, nickname: "Makaya intégration", points: 100 }],
+      leaderboard: [
+        {
+          position: 1,
+          publicCode: playerPublicCodes[0],
+          nickname: "Makaya intégration",
+          points: 100,
+        },
+        {
+          position: 2,
+          publicCode: playerPublicCodes[1],
+          nickname: "Sanza intégration",
+          points: 0,
+        },
+      ],
     });
 
     await logoutAdmin(login.session.token, {

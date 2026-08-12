@@ -10,7 +10,9 @@ import type {
   AdminUserForAuthentication,
 } from "@/server/services/admin-auth";
 
-type UserRow = AdminUserForAuthentication;
+type UserRow = Omit<AdminUserForAuthentication, "lockedUntil"> & {
+  lockedUntil: Date | string | null;
+};
 type SessionRow = AdminIdentity;
 
 async function findUserByEmail(email: string) {
@@ -27,7 +29,19 @@ async function findUserByEmail(email: string) {
     LIMIT 1
   `);
 
-  return rows.rows[0] ?? null;
+  const user = rows.rows[0];
+
+  if (!user) return null;
+
+  return {
+    ...user,
+    lockedUntil:
+      user.lockedUntil instanceof Date
+        ? user.lockedUntil
+        : user.lockedUntil
+          ? new Date(user.lockedUntil)
+          : null,
+  };
 }
 
 async function recordFailedLogin(adminUserId: string, now: Date) {

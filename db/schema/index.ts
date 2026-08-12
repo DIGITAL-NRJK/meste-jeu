@@ -335,6 +335,9 @@ export const sessionQuestions = pgTable(
       table.quizSessionId,
       table.questionId,
     ),
+    uniqueIndex("session_questions_one_open_per_session_unique")
+      .on(table.quizSessionId)
+      .where(sql`${table.status} = 'OPEN'`),
     index("session_questions_session_status_idx").on(
       table.quizSessionId,
       table.status,

@@ -34,6 +34,7 @@ La base garantit notamment :
 - une seule réponse par couple `player_id + session_question_id` ;
 - au maximum une proposition correcte par question et quatre propositions maximum ;
 - des positions uniques dans une session ;
+- une seule occurrence `OPEN` à la fois dans une même session ;
 - des durées, dates et compteurs cohérents ;
 - un ledger de score conservé, avec invalidation par `voided_at` au lieu d'une suppression ;
 - un auteur administrateur obligatoire pour les ajustements manuels ;

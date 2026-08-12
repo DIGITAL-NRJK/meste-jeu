@@ -19,7 +19,7 @@ Le cycle autorisé est :
 DRAFT → REVIEW → VALIDATED → ARCHIVED
 ```
 
-Toute édition d’un brouillon ou d’une question en revue la replace en `DRAFT`. Une question validée ou archivée n’est plus éditable. La duplication crée toujours un nouveau brouillon et conserve l’identifiant de la question source dans l’audit. Seules les questions `VALIDATED` pourront être sélectionnées par le moteur de session de la TASK 05.
+Toute édition d’un brouillon ou d’une question en revue la replace en `DRAFT`. Une question validée ou archivée n’est plus éditable. La duplication crée toujours un nouveau brouillon et conserve l’identifiant de la question source dans l’audit. Seules les questions `VALIDATED` peuvent être sélectionnées par le moteur de session.
 
 ## Architecture serveur
 

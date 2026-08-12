@@ -70,6 +70,12 @@ La couche serveur permet de créer les catégories et de gérer le cycle `DRAFT 
 
 Le contrat métier et les invariants sont documentés dans `docs/question-library.md`.
 
+## Moteur de session
+
+Le moteur serveur crée et configure les sessions, n’accepte que des questions validées et contrôle les cycles `DRAFT → READY → LIVE → FINISHED` et `PENDING → OPEN → CLOSED → REVEALED`. PostgreSQL garantit qu’une seule occurrence peut être ouverte à la fois dans une session.
+
+Le DTO joueur omet la bonne réponse et l’explication avant la révélation. Les interfaces joueur et administrateur seront raccordées dans les tâches dédiées. Le contrat complet est documenté dans `docs/session-engine.md`.
+
 ## Déploiement Netlify
 
 Netlify détecte Next.js et applique automatiquement l'adaptateur OpenNext. Configurez les variables de `.env.example` dans l'interface Netlify, puis utilisez la commande de build `npm run build` et le répertoire de publication `.next`.
@@ -81,5 +87,6 @@ Le build force Webpack, pris en charge par Next.js, car Turbopack ouvre un port 
 - Cahier des charges : `docs/cahier-des-charges-v1.md`
 - Inscription et session joueur : `docs/player-registration.md`
 - Bibliothèque de questions : `docs/question-library.md`
+- Moteur de session : `docs/session-engine.md`
 - Roadmap : `docs/roadmap-v1.md`
 - Instructions agents : `AGENTS.md`

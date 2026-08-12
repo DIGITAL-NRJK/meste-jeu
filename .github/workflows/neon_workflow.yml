@@ -68,6 +68,16 @@ jobs:
         env:
           DATABASE_URL_UNPOOLED: ${{ steps.create_neon_branch.outputs.db_url }}
 
+      - name: Run database integration tests
+        run: npm run test:integration:db
+        env:
+          DATABASE_URL: ${{ steps.create_neon_branch.outputs.db_url_pooled }}
+          DATABASE_URL_UNPOOLED: ${{ steps.create_neon_branch.outputs.db_url }}
+          APP_URL: http://localhost:3000
+          SESSION_SECRET: integration-session-secret-with-at-least-32-characters
+          ADMIN_AUTH_SECRET: integration-admin-secret-with-at-least-32-characters
+          DATABASE_INTEGRATION_TARGET: neon-preview
+
   delete_neon_branch:
     name: Delete Neon branch
     needs: setup

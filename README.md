@@ -27,6 +27,7 @@ npm run dev             # serveur de développement
 npm run lint            # règles ESLint et Next.js
 npm run typecheck       # TypeScript strict sans émission
 npm test                # tests unitaires Vitest
+npm run test:integration:db # réservé au workflow Neon de prévisualisation
 npm run test:watch      # Vitest en mode interactif
 npm run test:e2e        # smoke tests Playwright mobile
 npm run build           # build de production Next.js (compilateur Webpack)
@@ -56,6 +57,13 @@ Le workflow GitHub crée une branche Neon éphémère pour chaque PR et y appliq
 
 Les choix de modélisation et les invariants sont détaillés dans `docs/database-schema.md`.
 
+## API joueur
+
+- `POST /api/register` crée un joueur et sa session à partir de `eventSlug` et `nickname` ;
+- `GET /api/me` restaure le joueur courant depuis son cookie sécurisé.
+
+Le token joueur brut reste exclusivement dans un cookie `HttpOnly`. Seule son empreinte HMAC est stockée dans PostgreSQL. Le contrat complet est documenté dans `docs/player-registration.md`.
+
 ## Déploiement Netlify
 
 Netlify détecte Next.js et applique automatiquement l'adaptateur OpenNext. Configurez les variables de `.env.example` dans l'interface Netlify, puis utilisez la commande de build `npm run build` et le répertoire de publication `.next`.
@@ -65,5 +73,6 @@ Le build force Webpack, pris en charge par Next.js, car Turbopack ouvre un port 
 ## Documentation
 
 - Cahier des charges : `docs/cahier-des-charges-v1.md`
+- Inscription et session joueur : `docs/player-registration.md`
 - Roadmap : `docs/roadmap-v1.md`
 - Instructions agents : `AGENTS.md`

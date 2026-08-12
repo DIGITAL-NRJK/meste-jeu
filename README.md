@@ -28,6 +28,7 @@ npm run lint            # règles ESLint et Next.js
 npm run typecheck       # TypeScript strict sans émission
 npm test                # tests unitaires Vitest
 npm run test:integration:db # réservé au workflow Neon de prévisualisation
+npm run test:load       # smoke test de charge GET sans authentification
 npm run test:watch      # Vitest en mode interactif
 npm run test:e2e        # smoke tests Playwright mobile
 npm run build           # build de production Next.js (compilateur Webpack)
@@ -108,6 +109,8 @@ Netlify détecte Next.js et applique automatiquement l'adaptateur OpenNext. Conf
 
 Le build force Webpack, pris en charge par Next.js, car Turbopack ouvre un port de compilation PostCSS qui n'est pas disponible dans certains environnements d'intégration isolés.
 
+Les créations de session les plus sensibles (`POST /api/admin/login` et `POST /api/register`) sont protégées par deux règles de rate limiting Netlify Edge agrégées par domaine et adresse IP. Vérifiez leur prise en compte dans le log de post-processing de chaque déploiement. La recette, le test de charge, la répétition générale et les critères de rollback sont documentés dans `docs/production-readiness.md`.
+
 ## Documentation
 
 - Cahier des charges : `docs/cahier-des-charges-v1.md`
@@ -120,5 +123,6 @@ Le build force Webpack, pris en charge par Next.js, car Turbopack ouvre un port 
 - Authentification et dashboard admin : `docs/admin-dashboard.md`
 - Contrôle live : `docs/live-control.md`
 - Exports et journal d’audit : `docs/admin-reporting.md`
+- Recette et préparation de production : `docs/production-readiness.md`
 - Roadmap : `docs/roadmap-v1.md`
 - Instructions agents : `AGENTS.md`

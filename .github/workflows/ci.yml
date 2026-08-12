@@ -11,7 +11,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       DATABASE_URL: postgresql://user:password@example-pooler.neon.tech/database
       DATABASE_URL_UNPOOLED: postgresql://user:password@example.neon.tech/database
@@ -43,8 +43,17 @@ jobs:
       - name: Validate migration history
         run: npm run db:check
 
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Unit tests
         run: npm test
 
       - name: Production build
         run: npm run build
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Mobile end-to-end tests
+        run: npm run test:e2e

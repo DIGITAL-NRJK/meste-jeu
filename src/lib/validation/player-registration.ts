@@ -25,17 +25,19 @@ const nicknameSchema = z
     }
   });
 
+export const eventSlugSchema = z
+  .string({ error: "L’événement est requis." })
+  .trim()
+  .min(1, "L’événement est requis.")
+  .max(100, "L’identifiant de l’événement est trop long.")
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    "L’identifiant de l’événement est invalide.",
+  );
+
 export const playerRegistrationSchema = z
   .object({
-    eventSlug: z
-      .string({ error: "L’événement est requis." })
-      .trim()
-      .min(1, "L’événement est requis.")
-      .max(100, "L’identifiant de l’événement est trop long.")
-      .regex(
-        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-        "L’identifiant de l’événement est invalide.",
-      ),
+    eventSlug: eventSlugSchema,
     nickname: nicknameSchema,
   })
   .strict();

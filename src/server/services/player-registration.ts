@@ -12,6 +12,7 @@ export type PublicPlayer = {
   publicCode: string;
   nickname: string;
   currentStreak: number;
+  totalPoints: number;
 };
 
 export type PublicEvent = {

@@ -23,6 +23,7 @@ function createdResult(input: PersistRegistrationInput) {
       publicCode: input.publicCode,
       nickname: input.nickname,
       currentStreak: 0,
+      totalPoints: 0,
     },
     event: {
       slug: input.eventSlug,
@@ -70,6 +71,7 @@ describe("registerPlayer", () => {
         publicCode: "HC-084200",
         nickname: "Makaya",
         currentStreak: 0,
+        totalPoints: 0,
       },
       event: { slug: "heritage-congo-2026", status: "READY" },
       session: { token: "raw-session-token" },
@@ -166,6 +168,7 @@ describe("getCurrentPlayer", () => {
         publicCode: "HC-084200",
         nickname: "Makaya",
         currentStreak: 0,
+        totalPoints: 0,
       },
       event: {
         slug: "heritage-congo-2026",

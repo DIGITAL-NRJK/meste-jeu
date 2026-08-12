@@ -22,6 +22,7 @@ import {
 import { hashPlayerSessionToken } from "../../src/lib/auth/player-session";
 import { getDb } from "../../src/lib/db/client";
 import { postgresAnswerScoringRepository } from "../../src/server/repositories/answer-scoring-repository";
+import { postgresPlayerRepository } from "../../src/server/repositories/player-repository";
 import { postgresSessionEngineRepository } from "../../src/server/repositories/session-engine-repository";
 import {
   AnswerAlreadySubmittedError,
@@ -29,6 +30,7 @@ import {
   getPlayerAnswerResult,
   submitPlayerAnswer,
 } from "../../src/server/services/answer-scoring";
+import { getCurrentPlayer } from "../../src/server/services/player-registration";
 import { cancelSessionQuestion } from "../../src/server/services/session-engine";
 
 if (
@@ -248,6 +250,15 @@ describe("answer scoring with PostgreSQL", () => {
         streakBonus: 20,
       },
     });
+    await expect(
+      getCurrentPlayer(playerToken, {
+        repository: postgresPlayerRepository,
+        sessionSecret,
+        now: () => at(61),
+      }),
+    ).resolves.toMatchObject({
+      player: { totalPoints: 195 },
+    });
 
     await cancelSessionQuestion(occurrenceIds[0]!, actorAdminId, {
       repository: postgresSessionEngineRepository,
@@ -269,6 +280,15 @@ describe("answer scoring with PostgreSQL", () => {
       status: "CANCELED",
       answerSubmitted: true,
       totalPoints: 0,
+    });
+    await expect(
+      getCurrentPlayer(playerToken, {
+        repository: postgresPlayerRepository,
+        sessionSecret,
+        now: () => at(62),
+      }),
+    ).resolves.toMatchObject({
+      player: { totalPoints: 0 },
     });
 
     await db

@@ -18,6 +18,7 @@ import {
 } from "../../db/schema";
 import { getDb } from "../../src/lib/db/client";
 import { postgresQuestionLibraryRepository } from "../../src/server/repositories/question-library-repository";
+import { postgresPlayerGameRepository } from "../../src/server/repositories/player-game-repository";
 import { postgresSessionEngineRepository } from "../../src/server/repositories/session-engine-repository";
 import {
   createCategory,
@@ -267,6 +268,20 @@ describe("session engine with PostgreSQL", () => {
     expect(JSON.stringify(openState)).not.toContain("isCorrect");
     expect(JSON.stringify(openState)).not.toContain("correctOptionId");
     expect(JSON.stringify(openState)).not.toContain("explanation");
+
+    await expect(
+      postgresPlayerGameRepository.findEventState(eventSlug),
+    ).resolves.toMatchObject({
+      event: { slug: eventSlug, status: "READY" },
+      session: {
+        id: session.id,
+        status: "LIVE",
+        currentQuestion: {
+          id: firstOccurrence.id,
+          status: "OPEN",
+        },
+      },
+    });
 
     await closeCurrentSessionQuestion(
       session.id,

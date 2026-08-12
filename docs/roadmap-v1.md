@@ -30,6 +30,6 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 - TASK 09 : terminée le 13 août 2026
 - TASK 10 : terminée le 13 août 2026
 - TASK 11 : terminée le 13 août 2026
-- TASK 12 : à faire
+- TASK 12 : QA automatisée terminée le 13 août 2026 ; recette de production bloquée par les écarts listés dans `docs/production-readiness.md`
 
 Le détail fonctionnel et les critères de recette restent définis dans `docs/cahier-des-charges-v1.md`.

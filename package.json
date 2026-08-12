@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration:db": "vitest run --config vitest.integration.config.ts",
+    "test:load": "node scripts/load-smoke.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "admin:create": "node scripts/create-admin.mjs",
@@ -34,6 +35,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@netlify/edge-functions": "3.0.8",
     "@opentelemetry/api": "1.9.1",
     "@playwright/test": "1.62.1",
     "@tailwindcss/postcss": "4.3.3",

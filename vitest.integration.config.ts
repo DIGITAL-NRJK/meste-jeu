@@ -10,7 +10,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/unit/**/*.test.ts"],
+    include: ["tests/integration/**/*.test.ts"],
     passWithNoTests: false,
+    testTimeout: 15_000,
   },
 });

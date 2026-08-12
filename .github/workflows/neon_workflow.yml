@@ -34,6 +34,7 @@ jobs:
       github.event.action == 'reopened' ||
       github.event.action == 'synchronize'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Set branch expiration date
         run: echo "EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
@@ -46,6 +47,26 @@ jobs:
           branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.18.0
+          cache: npm
+
+      - name: Use project npm version
+        run: npm install --global npm@11.6.2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply migrations to the Neon preview branch
+        run: npm run db:migrate
+        env:
+          DATABASE_URL_UNPOOLED: ${{ steps.create_neon_branch.outputs.db_url }}
 
   delete_neon_branch:
     name: Delete Neon branch

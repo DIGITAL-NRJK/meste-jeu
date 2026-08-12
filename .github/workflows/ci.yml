@@ -40,6 +40,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Validate migration history
+        run: npm run db:check
+
       - name: Unit tests
         run: npm test
 

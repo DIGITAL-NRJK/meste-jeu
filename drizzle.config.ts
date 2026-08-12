@@ -4,12 +4,11 @@ import { defineConfig } from "drizzle-kit";
 config({ path: ".env.local" });
 config();
 
-const databaseUrl =
-  process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL_UNPOOLED;
 
 if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL_UNPOOLED ou DATABASE_URL doit être défini pour Drizzle Kit.",
+    "DATABASE_URL_UNPOOLED doit être défini pour Drizzle Kit et les migrations.",
   );
 }
 

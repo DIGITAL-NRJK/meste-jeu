@@ -31,6 +31,7 @@ npm run test:watch      # Vitest en mode interactif
 npm run test:e2e        # smoke tests Playwright mobile
 npm run build           # build de production Next.js (compilateur Webpack)
 npm run netlify:build   # build local avec le contexte Netlify
+npm run db:check        # vérifier l'intégrité de l'historique des migrations
 npm run db:generate     # générer les migrations Drizzle
 npm run db:migrate      # appliquer les migrations Drizzle
 npm run db:studio       # ouvrir Drizzle Studio
@@ -49,7 +50,11 @@ L'application utilise Drizzle ORM et le pilote HTTP `@neondatabase/serverless`, 
 - `DATABASE_URL` avec l'URL Neon poolée pour le trafic applicatif ;
 - `DATABASE_URL_UNPOOLED` avec l'URL directe pour Drizzle Kit et les migrations.
 
-Le schéma métier et les premières migrations relèvent de TASK 02.
+Le schéma métier est défini dans `db/schema/index.ts` et les migrations versionnées dans `db/migrations`. Après une modification du schéma, générez la migration avec `npm run db:generate`, vérifiez-la, puis exécutez `npm run db:check`.
+
+Le workflow GitHub crée une branche Neon éphémère pour chaque PR et y applique automatiquement les migrations. N'exécutez jamais une migration sur la base de production sans instruction explicite.
+
+Les choix de modélisation et les invariants sont détaillés dans `docs/database-schema.md`.
 
 ## Déploiement Netlify
 

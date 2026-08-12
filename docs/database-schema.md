@@ -54,6 +54,8 @@ PostgreSQL garantit déjà l'anti-double réponse même en cas de concurrence. L
 
 Le classement est dérivé du ledger actif sans colonne de total matérialisée. Les égalités utilisent `RANK()` sur les points décroissants ; `voided_at` et le statut du joueur sont évalués à chaque calcul.
 
+Les comptes administrateur suivent aussi les échecs de connexion avec `failed_login_count` et `locked_until`. Une session réussie remet ces champs à zéro ; cinq échecs consécutifs déclenchent un verrouillage de quinze minutes sans modifier ni exposer le hash du mot de passe.
+
 ## Cycle des migrations
 
 Pour une évolution de schéma :

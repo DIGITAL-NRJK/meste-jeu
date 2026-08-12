@@ -13,9 +13,10 @@ L’interface gère les états suivants :
 5. enregistrement irréversible de la première réponse ;
 6. attente pendant la fermeture ;
 7. révélation de la correction, de l’explication et des points ;
-8. annulation d’une question sans points.
+8. annulation d’une question sans points ;
+9. accès au classement général ou à celui de la session active.
 
-Le classement reste réservé à la TASK 08. Le timer du navigateur améliore seulement l’affichage : l’heure serveur et `closes_at` restent l’autorité pour accepter ou refuser une réponse.
+Le timer du navigateur améliore seulement l’affichage : l’heure serveur et `closes_at` restent l’autorité pour accepter ou refuser une réponse.
 
 ## Synchronisation
 

@@ -2,7 +2,9 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
+import { BrandHeader } from "@/components/player/brand-header";
 import {
   formatPoints,
   getDifficultyLabel,
@@ -108,20 +110,6 @@ async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-function BrandHeader({ compact = false }: { compact?: boolean }) {
-  return (
-    <header className={`brand-header${compact ? " brand-header--compact" : ""}`}>
-      <span className="brand-mark" aria-hidden="true">
-        M
-      </span>
-      <span>
-        <strong>MESTE</strong>
-        <small>Héritage Congo</small>
-      </span>
-    </header>
-  );
-}
-
 function Registration({
   eventSlug,
   onRegistered,
@@ -221,7 +209,15 @@ function PlayerSummary({ player }: { player: Player }) {
   );
 }
 
-function Lobby({ player, state }: { player: Player; state: EventState }) {
+function Lobby({
+  player,
+  state,
+  eventSlug,
+}: {
+  player: Player;
+  state: EventState;
+  eventSlug: string;
+}) {
   const session = state.session;
   const finished = session?.status === "FINISHED" || state.event.status === "FINISHED";
 
@@ -249,6 +245,12 @@ function Lobby({ player, state }: { player: Player; state: EventState }) {
               En attente du direct
             </div>
           ) : null}
+          <Link
+            className="leaderboard-link"
+            href={`/leaderboard/${eventSlug}${session ? `?sessionId=${session.id}` : ""}`}
+          >
+            Voir le classement <span aria-hidden="true">→</span>
+          </Link>
         </section>
         <p className="player-code">Code joueur · {player.publicCode}</p>
       </div>
@@ -384,6 +386,7 @@ function QuestionView({
 }
 
 function GameScreen({
+  eventSlug,
   player,
   state,
   result,
@@ -392,6 +395,7 @@ function GameScreen({
   submissionMessage,
   onAnswer,
 }: {
+  eventSlug: string;
   player: Player;
   state: SessionState;
   result: AnswerResult | null;
@@ -405,6 +409,12 @@ function GameScreen({
       <div className="game-frame">
         <BrandHeader compact />
         <PlayerSummary player={player} />
+        <Link
+          className="leaderboard-link leaderboard-link--compact"
+          href={`/leaderboard/${eventSlug}?sessionId=${state.session.id}`}
+        >
+          Classement en direct <span aria-hidden="true">→</span>
+        </Link>
         {state.currentQuestion ? (
           <QuestionView
             question={state.currentQuestion}
@@ -659,6 +669,7 @@ export function PlayerGame({ eventSlug }: { eventSlug: string }) {
     <>
       {fatalError ? <div className="sync-notice" role="status">{fatalError}</div> : null}
       <GameScreen
+        eventSlug={eventSlug}
         player={player.player}
         state={sessionState}
         result={result}
@@ -669,6 +680,6 @@ export function PlayerGame({ eventSlug }: { eventSlug: string }) {
       />
     </>
   ) : (
-    <Lobby player={player.player} state={eventState} />
+    <Lobby player={player.player} state={eventState} eventSlug={eventSlug} />
   );
 }

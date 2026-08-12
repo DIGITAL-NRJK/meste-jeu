@@ -211,3 +211,104 @@ test("la correction reste masquée jusqu’à la révélation serveur", async ({
   await expect(page.getByText("+175 pts")).toBeVisible();
   await expect(page.getByText("Brazzaville est la capitale politique de la République du Congo.")).toBeVisible();
 });
+
+test("le classement affiche le Top 10, la position personnelle et la portée session", async ({
+  page,
+}) => {
+  const sessionId = "00000000-0000-4000-8000-000000000001";
+  const eventEntries = Array.from({ length: 10 }, (_, index) => ({
+    position: index + 1,
+    publicCode: `HC-${String(index + 1).padStart(6, "0")}`,
+    nickname: `Joueur ${index + 1}`,
+    points: 1_000 - index * 25,
+  }));
+
+  await page.route("**/api/events/heritage-congo-2026/state", async (route) => {
+    await route.fulfill({
+      json: {
+        event: {
+          slug: "heritage-congo-2026",
+          name: "Héritage Congo 2026",
+          status: "LIVE",
+        },
+        session: {
+          id: sessionId,
+          name: "Grand Quiz de l’Indépendance",
+          status: "LIVE",
+        },
+      },
+    });
+  });
+  await page.route("**/api/leaderboard?**", async (route) => {
+    const sessionScope = new URL(route.request().url()).searchParams.has(
+      "sessionId",
+    );
+    await route.fulfill({
+      json: sessionScope
+        ? {
+            event: {
+              slug: "heritage-congo-2026",
+              name: "Héritage Congo 2026",
+              status: "LIVE",
+            },
+            scope: {
+              type: "SESSION",
+              id: sessionId,
+              name: "Grand Quiz de l’Indépendance",
+              status: "LIVE",
+            },
+            entries: [
+              {
+                position: 1,
+                publicCode: "HC-000001",
+                nickname: "Makaya",
+                points: 175,
+              },
+              {
+                position: 1,
+                publicCode: "HC-000002",
+                nickname: "Nzambe",
+                points: 175,
+              },
+            ],
+            currentPlayer: {
+              position: 1,
+              publicCode: "HC-000001",
+              nickname: "Makaya",
+              points: 175,
+            },
+            participantCount: 2,
+          }
+        : {
+            event: {
+              slug: "heritage-congo-2026",
+              name: "Héritage Congo 2026",
+              status: "LIVE",
+            },
+            scope: { type: "EVENT" },
+            entries: eventEntries,
+            currentPlayer: {
+              position: 12,
+              publicCode: "HC-084200",
+              nickname: "Makaya",
+              points: 610,
+            },
+            participantCount: 24,
+          },
+    });
+  });
+
+  await page.goto("/leaderboard/heritage-congo-2026");
+
+  await expect(page.getByRole("heading", { name: "Classement" })).toBeVisible();
+  await expect(page.getByText("24 participants classés")).toBeVisible();
+  await expect(page.getByRole("listitem")).toHaveCount(10);
+  await expect(page.getByLabel("Votre position")).toContainText("12");
+  await expect(page.getByLabel("Votre position")).toContainText("610 pts");
+
+  await page.getByRole("button", { name: "Session" }).click();
+  await expect(page.getByText("Grand Quiz de l’Indépendance")).toBeVisible();
+  await expect(page.getByRole("listitem")).toHaveCount(2);
+  await expect(page.getByRole("listitem").nth(0)).toContainText("01");
+  await expect(page.getByRole("listitem").nth(1)).toContainText("01");
+});

@@ -39,6 +39,11 @@ export function getPollingDelay(randomValue: number): number {
   return POLL_MINIMUM_MS + Math.floor(normalized * POLL_JITTER_MS);
 }
 
+export function getLeaderboardPollingDelay(randomValue: number): number {
+  const normalized = Math.min(1, Math.max(0, randomValue));
+  return 5_000 + Math.floor(normalized * 2_000);
+}
+
 export function formatPoints(points: number): string {
   return new Intl.NumberFormat("fr-FR").format(points);
 }

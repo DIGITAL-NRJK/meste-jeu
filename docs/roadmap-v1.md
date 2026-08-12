@@ -20,6 +20,7 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 ## État
 
 - TASK 01 : terminée le 12 août 2026
-- TASK 02 à TASK 12 : à faire
+- TASK 02 : terminée le 12 août 2026
+- TASK 03 à TASK 12 : à faire
 
 Le détail fonctionnel et les critères de recette restent définis dans `docs/cahier-des-charges-v1.md`.

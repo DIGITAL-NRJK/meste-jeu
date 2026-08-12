@@ -64,6 +64,12 @@ Les choix de modélisation et les invariants sont détaillés dans `docs/databas
 
 Le token joueur brut reste exclusivement dans un cookie `HttpOnly`. Seule son empreinte HMAC est stockée dans PostgreSQL. Le contrat complet est documenté dans `docs/player-registration.md`.
 
+## Bibliothèque de questions
+
+La couche serveur permet de créer les catégories et de gérer le cycle `DRAFT → REVIEW → VALIDATED → ARCHIVED` des questions texte ou image. La revue et la validation exigent de deux à quatre propositions, exactement une bonne réponse et au moins une source. Les interfaces administrateur seront raccordées lors de la TASK 09 ; aucun secret de réponse n’est exposé par une route publique à ce stade.
+
+Le contrat métier et les invariants sont documentés dans `docs/question-library.md`.
+
 ## Déploiement Netlify
 
 Netlify détecte Next.js et applique automatiquement l'adaptateur OpenNext. Configurez les variables de `.env.example` dans l'interface Netlify, puis utilisez la commande de build `npm run build` et le répertoire de publication `.next`.
@@ -74,5 +80,6 @@ Le build force Webpack, pris en charge par Next.js, car Turbopack ouvre un port 
 
 - Cahier des charges : `docs/cahier-des-charges-v1.md`
 - Inscription et session joueur : `docs/player-registration.md`
+- Bibliothèque de questions : `docs/question-library.md`
 - Roadmap : `docs/roadmap-v1.md`
 - Instructions agents : `AGENTS.md`

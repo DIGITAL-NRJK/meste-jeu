@@ -416,6 +416,23 @@ input:focus-visible {
   padding: 0.6rem 0.9rem;
 }
 
+.leaderboard-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 1.5rem;
+  color: var(--brand-accent);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.leaderboard-link--compact {
+  justify-content: flex-end;
+  width: 100%;
+  margin: -0.15rem 0 0.85rem;
+}
+
 .status-dot {
   width: 0.45rem;
   height: 0.45rem;
@@ -677,8 +694,285 @@ input:focus-visible {
   text-align: center;
 }
 
+/* Leaderboard */
+.leaderboard-page {
+  min-height: 100dvh;
+  background:
+    linear-gradient(90deg, transparent 2rem, rgb(242 193 78 / 5%) 2rem, transparent 2.08rem),
+    radial-gradient(circle at 100% 0%, rgb(242 193 78 / 9%), transparent 24rem),
+    var(--background);
+  padding: max(1.25rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom));
+}
+
+.leaderboard-frame {
+  width: min(100%, 39rem);
+  margin: 0 auto;
+}
+
+.leaderboard-nav {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.leaderboard-nav > a {
+  margin-top: 0.8rem;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.leaderboard-nav > a:hover {
+  color: var(--brand-accent);
+}
+
+.leaderboard-heading {
+  margin: 2.8rem 0 1.4rem;
+}
+
+.leaderboard-heading h1 {
+  margin: 0.35rem 0 0.3rem;
+  font-family: var(--display-font);
+  font-size: clamp(3.3rem, 16vw, 5.8rem);
+  font-weight: 500;
+  letter-spacing: -0.07em;
+  line-height: 0.95;
+}
+
+.leaderboard-heading > p:last-child {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.leaderboard-scopes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgb(248 242 229 / 3%);
+  padding: 0.25rem;
+}
+
+.leaderboard-scopes button {
+  min-height: 2.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.leaderboard-scopes button[aria-pressed="true"] {
+  background: var(--text-primary);
+  color: var(--background);
+}
+
+.leaderboard-scope-name {
+  margin: 1.6rem 0 0.8rem;
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.leaderboard-list {
+  position: relative;
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.leaderboard-list::before {
+  position: absolute;
+  z-index: 0;
+  top: 1.7rem;
+  bottom: 1.7rem;
+  left: 1.7rem;
+  width: 1px;
+  background: linear-gradient(var(--brand-accent), rgb(242 193 78 / 8%));
+  content: "";
+}
+
+.leaderboard-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-height: 4.8rem;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.4rem 0.65rem 0.4rem 0;
+}
+
+.leaderboard-row--current {
+  margin: 0.3rem -0.3rem;
+  border: 1px solid rgb(242 193 78 / 40%);
+  border-radius: 1rem;
+  background: rgb(242 193 78 / 8%);
+  padding-left: 0.3rem;
+}
+
+.leaderboard-position {
+  display: grid;
+  width: 3.4rem;
+  height: 3.4rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--background);
+  color: var(--text-secondary);
+  font-family: var(--display-font);
+  font-size: 1.05rem;
+}
+
+.leaderboard-position--honor {
+  border-color: rgb(242 193 78 / 55%);
+  color: var(--brand-accent);
+}
+
+.leaderboard-identity {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.leaderboard-identity strong {
+  overflow: hidden;
+  font-size: 0.93rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard-identity small {
+  margin-top: 0.18rem;
+  color: var(--text-secondary);
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.leaderboard-points {
+  font-family: var(--display-font);
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+.leaderboard-points::after {
+  margin-left: 0.2rem;
+  color: var(--text-secondary);
+  content: "pts";
+  font-family: var(--body-font);
+  font-size: 0.55rem;
+}
+
+.current-rank {
+  margin: 0 0 1rem;
+  border: 1px solid rgb(242 193 78 / 45%);
+  border-radius: 1.15rem;
+  background: rgb(16 39 31 / 96%);
+  box-shadow: 0 0.8rem 2.5rem rgb(0 0 0 / 22%);
+  padding: 0.8rem;
+  backdrop-filter: blur(12px);
+}
+
+.current-rank > span {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: var(--brand-accent);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.current-rank > div {
+  display: grid;
+  grid-template-columns: 3.4rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.current-rank b {
+  font-family: var(--display-font);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.leaderboard-loading,
+.leaderboard-empty {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 1.2rem;
+  background: var(--surface);
+}
+
+.leaderboard-loading {
+  display: flex;
+  min-height: 8rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.leaderboard-loading span {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.leaderboard-empty {
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+.leaderboard-empty h2 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: 1.8rem;
+  font-weight: 500;
+}
+
+.leaderboard-empty p {
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.leaderboard-empty button {
+  min-height: 2.8rem;
+  border: 1px solid var(--brand-accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--brand-accent);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0 1.2rem;
+}
+
+.leaderboard-stale {
+  color: var(--error);
+  font-size: 0.65rem;
+  text-align: center;
+}
+
 @keyframes orbit {
   to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  50% { opacity: 0.35; transform: scale(0.7); }
 }
 
 @media (min-width: 600px) {

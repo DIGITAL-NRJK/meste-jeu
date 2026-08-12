@@ -52,6 +52,8 @@ Les services transactionnels appliquent les contrôles portant sur plusieurs tab
 
 PostgreSQL garantit déjà l'anti-double réponse même en cas de concurrence. Les services ne doivent pas remplacer cette contrainte par une simple vérification JavaScript.
 
+Le classement est dérivé du ledger actif sans colonne de total matérialisée. Les égalités utilisent `RANK()` sur les points décroissants ; `voided_at` et le statut du joueur sont évalués à chaque calcul.
+
 ## Cycle des migrations
 
 Pour une évolution de schéma :

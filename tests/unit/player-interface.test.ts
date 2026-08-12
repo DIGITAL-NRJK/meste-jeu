@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatPoints,
   getDifficultyLabel,
+  getLeaderboardPollingDelay,
   getPollingDelay,
   getQuestionProgress,
   getRemainingSeconds,
@@ -40,6 +41,12 @@ describe("player interface helpers", () => {
     expect(getPollingDelay(-1)).toBe(2_200);
     expect(getPollingDelay(0.5)).toBe(2_700);
     expect(getPollingDelay(2)).toBe(3_200);
+  });
+
+  it("rafraîchit le classement avec un polling plus espacé", () => {
+    expect(getLeaderboardPollingDelay(-1)).toBe(5_000);
+    expect(getLeaderboardPollingDelay(0.5)).toBe(6_000);
+    expect(getLeaderboardPollingDelay(2)).toBe(7_000);
   });
 
   it("formate le score en français", () => {

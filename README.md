@@ -89,6 +89,12 @@ La landing mobile mène à `/play/heritage-congo-2026`. Le parcours restaure le 
 
 Les endpoints légers `GET /api/events/:eventSlug/state` et `GET /api/sessions/:id/current-question` complètent les routes de réponse. Les règles d’interface et de synchronisation sont documentées dans `docs/player-interface.md`.
 
+## Classement
+
+`GET /api/leaderboard?eventSlug=…` calcule le classement général depuis le ledger actif. Le paramètre facultatif `sessionId` fournit la portée session. L’écran `/leaderboard/:eventSlug` affiche le Top 10, les égalités et la position personnelle, puis se rafraîchit avec un polling jitteré.
+
+Le calcul exclut les scores invalidés et les joueurs désactivés. Le contrat et les règles d’égalité sont documentés dans `docs/leaderboard.md`.
+
 ## Déploiement Netlify
 
 Netlify détecte Next.js et applique automatiquement l'adaptateur OpenNext. Configurez les variables de `.env.example` dans l'interface Netlify, puis utilisez la commande de build `npm run build` et le répertoire de publication `.next`.
@@ -103,5 +109,6 @@ Le build force Webpack, pris en charge par Next.js, car Turbopack ouvre un port 
 - Moteur de session : `docs/session-engine.md`
 - Réponse et scoring : `docs/answer-scoring.md`
 - Interface joueur : `docs/player-interface.md`
+- Classement : `docs/leaderboard.md`
 - Roadmap : `docs/roadmap-v1.md`
 - Instructions agents : `AGENTS.md`

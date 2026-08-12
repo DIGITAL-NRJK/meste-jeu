@@ -156,12 +156,12 @@ async function getDashboard(event: AdminEventOption, now: Date) {
       FROM ${questions}
     )
     SELECT jsonb_build_object(
-      'serverNow', ${now},
+      'serverNow', ${now}::timestamptz,
       'event', jsonb_build_object(
-        'id', ${event.id},
-        'slug', ${event.slug},
-        'name', ${event.name},
-        'status', ${event.status}
+        'id', ${event.id}::uuid,
+        'slug', ${event.slug}::text,
+        'name', ${event.name}::text,
+        'status', ${event.status}::text
       ),
       'participants', jsonb_build_object(
         'registered', participant_stats.registered,

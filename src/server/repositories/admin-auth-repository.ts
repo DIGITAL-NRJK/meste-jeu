@@ -44,7 +44,7 @@ async function recordFailedLogin(adminUserId: string, now: Date) {
             WHEN locked_until IS NOT NULL AND locked_until <= ${now} THEN 1
             ELSE failed_login_count + 1
           END
-        ) >= 5 THEN ${now} + interval '15 minutes'
+        ) >= 5 THEN ${now}::timestamptz + interval '15 minutes'
         ELSE NULL
       END,
       updated_at = ${now}

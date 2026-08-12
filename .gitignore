@@ -1,0 +1,34 @@
+# Dependencies
+/node_modules
+
+# Next.js
+/.next
+/out
+
+# Tests
+/coverage
+/playwright-report
+/test-results
+/.playwright
+
+# Deployment
+/.netlify
+
+# Local database configuration
+/.neon
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.DS_Store
+*.swp
+
+# Logs
+*.log
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts

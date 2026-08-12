@@ -100,7 +100,7 @@ Le calcul exclut les scores invalidés et les joueurs désactivés. Le contrat e
 
 L’espace `/admin` est protégé par une session serveur de douze heures. Les mots de passe administrateur sont hashés avec `scrypt`, les tokens bruts restent dans un cookie `HttpOnly` et seule leur empreinte HMAC est stockée. Cinq échecs de connexion verrouillent temporairement le compte.
 
-Le dashboard affiche les participants, l’activité récente, la session et la question courantes, les statistiques de réponse, le Top 10 et l’état de la bibliothèque. La régie permet aussi de préparer et lancer une session, conduire le cycle des questions, annuler une question et terminer la session. Le contrat de sécurité, les métriques et les commandes sont documentés dans `docs/admin-dashboard.md` et `docs/live-control.md`.
+Le dashboard affiche les participants, l’activité récente, la session et la question courantes, les statistiques de réponse, le Top 10 et l’état de la bibliothèque. La régie permet aussi de préparer et lancer une session, conduire le cycle des questions, annuler une question, terminer la session, exporter les joueurs, le classement et les réponses, puis consulter les dernières actions administratives. Le contrat de sécurité, les métriques et les commandes sont documentés dans `docs/admin-dashboard.md`, `docs/live-control.md` et `docs/admin-reporting.md`.
 
 ## Déploiement Netlify
 
@@ -119,5 +119,6 @@ Le build force Webpack, pris en charge par Next.js, car Turbopack ouvre un port 
 - Classement : `docs/leaderboard.md`
 - Authentification et dashboard admin : `docs/admin-dashboard.md`
 - Contrôle live : `docs/live-control.md`
+- Exports et journal d’audit : `docs/admin-reporting.md`
 - Roadmap : `docs/roadmap-v1.md`
 - Instructions agents : `AGENTS.md`

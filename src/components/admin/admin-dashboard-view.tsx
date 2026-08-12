@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 
 import type { AdminIdentity } from "@/server/services/admin-auth";
 import type { AdminDashboard } from "@/server/services/admin-dashboard";
+import type {
+  AdminAuditLogEntry,
+  AdminExportKind,
+} from "@/server/services/admin-reporting";
 import type { AdminLiveControlInput } from "@/lib/validation/admin-live-control";
 import { getLiveControlActions } from "@/lib/game/admin-live-controls";
 
@@ -19,6 +23,28 @@ const statusLabels = {
   CLOSED: "Fermée",
   REVEALED: "Révélée",
 } as const;
+
+const auditActionLabels: Record<AdminAuditLogEntry["action"], string> = {
+  QUESTION_CREATED: "Question créée",
+  QUESTION_UPDATED: "Question modifiée",
+  QUESTION_VALIDATED: "Question validée",
+  SESSION_CREATED: "Session créée",
+  SESSION_STARTED: "Session lancée",
+  SESSION_FINISHED: "Session terminée",
+  QUESTION_STARTED: "Question lancée",
+  QUESTION_CLOSED: "Réponses fermées",
+  QUESTION_REVEALED: "Réponse révélée",
+  QUESTION_CANCELED: "Question annulée",
+  SCORE_ADJUSTED: "Score ajusté",
+  PLAYER_DISABLED: "Joueur désactivé",
+  REWARD_AWARDED: "Récompense attribuée",
+};
+
+const exportLabels: Record<AdminExportKind, string> = {
+  players: "Exporter les joueurs",
+  leaderboard: "Exporter le classement",
+  answers: "Exporter les réponses",
+};
 
 function statusLabel(status: keyof typeof statusLabels) {
   return statusLabels[status];
@@ -43,11 +69,20 @@ function remainingTime(closesAt: string | null, serverTime: number) {
   return minutes > 0 ? `${minutes}:${String(remainder).padStart(2, "0")}` : `${seconds} s`;
 }
 
+function formatAuditTime(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "medium",
+  }).format(new Date(value));
+}
+
 export function AdminDashboardView({
   admin,
+  initialAuditLogs,
   initialDashboard,
 }: {
   admin: AdminIdentity;
+  initialAuditLogs: AdminAuditLogEntry[];
   initialDashboard: AdminDashboard;
 }) {
   const router = useRouter();
@@ -58,6 +93,9 @@ export function AdminDashboardView({
   const [stale, setStale] = useState(false);
   const [commandPending, setCommandPending] = useState(false);
   const [commandMessage, setCommandMessage] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState(initialAuditLogs);
+  const [exportPending, setExportPending] = useState<AdminExportKind | null>(null);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -118,6 +156,63 @@ export function AdminDashboardView({
     });
   }
 
+  async function refreshAuditLogs() {
+    try {
+      const response = await fetch("/api/admin/audit-logs?limit=30", {
+        cache: "no-store",
+      });
+      if (response.status === 401) {
+        router.replace("/admin/login");
+        return;
+      }
+      if (!response.ok) return;
+
+      const payload = (await response.json()) as {
+        auditLogs: AdminAuditLogEntry[];
+      };
+      setAuditLogs(payload.auditLogs);
+    } catch {
+      // La commande live reste valide même si le rafraîchissement d’audit échoue.
+    }
+  }
+
+  async function downloadExport(kind: AdminExportKind) {
+    if (!selectedEvent) return;
+
+    setExportPending(kind);
+    setExportMessage(null);
+    try {
+      const response = await fetch(
+        `/api/admin/exports/${kind}?eventSlug=${encodeURIComponent(selectedEvent)}`,
+        { cache: "no-store" },
+      );
+      if (response.status === 401) {
+        router.replace("/admin/login");
+        return;
+      }
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: { message?: string } };
+        throw new Error(payload.error?.message ?? "Export indisponible.");
+      }
+
+      const disposition = response.headers.get("content-disposition") ?? "";
+      const filename = disposition.match(/filename="([^"]+)"/u)?.[1] ?? `${kind}.csv`;
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setExportMessage(`${exportLabels[kind]} : fichier généré.`);
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : "Export indisponible.");
+    } finally {
+      setExportPending(null);
+    }
+  }
+
   async function runCommand(action: AdminLiveControlInput["action"], label: string) {
     if (!dashboard.session || !window.confirm(`Confirmer : ${label.toLowerCase()} ?`)) return;
     setCommandPending(true);
@@ -137,6 +232,7 @@ export function AdminDashboardView({
       const query = selectedEvent ? `?eventSlug=${encodeURIComponent(selectedEvent)}` : "";
       const refreshed = await fetch(`/api/admin/dashboard${query}`, { cache: "no-store" });
       if (refreshed.ok) setDashboard((await refreshed.json()) as AdminDashboard);
+      await refreshAuditLogs();
       setCommandMessage(`${label} : terminé.`);
     } catch (error) {
       setCommandMessage(error instanceof Error ? error.message : "Commande refusée.");
@@ -258,6 +354,8 @@ export function AdminDashboardView({
               <a href="#question">Question actuelle</a>
               <a href="#classement">Classement</a>
               <a href="#bibliotheque">Questions</a>
+              <a href="#exports">Exports</a>
+              <a href="#audit">Audit</a>
             </nav>
 
             <div className="admin-grid">
@@ -351,6 +449,61 @@ export function AdminDashboardView({
                   <div><dt>En revue</dt><dd>{dashboard.questionLibrary.inReview}</dd></div>
                   <div><dt>Validées</dt><dd>{dashboard.questionLibrary.validated}</dd></div>
                 </dl>
+              </section>
+
+              <section className="admin-panel admin-exports" id="exports">
+                <div className="admin-panel-heading">
+                  <div>
+                    <p className="eyebrow">Données</p>
+                    <h2>Exports CSV</h2>
+                  </div>
+                  <span className="admin-panel-index">CSV</span>
+                </div>
+                <p className="admin-panel-empty">
+                  Fichiers UTF-8 prêts pour Excel et Google Sheets.
+                </p>
+                <div className="admin-export-actions">
+                  {(Object.keys(exportLabels) as AdminExportKind[]).map((kind) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      disabled={exportPending !== null}
+                      onClick={() => downloadExport(kind)}
+                    >
+                      {exportPending === kind ? "Génération…" : exportLabels[kind]}
+                    </button>
+                  ))}
+                </div>
+                {exportMessage ? <p className="admin-export-message" role="status">{exportMessage}</p> : null}
+              </section>
+
+              <section className="admin-panel admin-audit" id="audit">
+                <div className="admin-panel-heading">
+                  <div>
+                    <p className="eyebrow">Traçabilité</p>
+                    <h2>Journal administrateur</h2>
+                  </div>
+                  <span className="admin-panel-index">30</span>
+                </div>
+                {auditLogs.length ? (
+                  <ol className="admin-audit-list">
+                    {auditLogs.map((entry) => (
+                      <li key={entry.id}>
+                        <span className="admin-audit-marker" aria-hidden="true" />
+                        <span>
+                          <strong>{auditActionLabels[entry.action]}</strong>
+                          <small>
+                            {entry.adminDisplayName} · {entry.entityType}
+                            {entry.entityId ? ` · ${entry.entityId.slice(0, 8)}` : ""}
+                          </small>
+                        </span>
+                        <time dateTime={entry.createdAt}>{formatAuditTime(entry.createdAt)}</time>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="admin-panel-empty">Aucune action administrative journalisée.</p>
+                )}
               </section>
             </div>
           </>

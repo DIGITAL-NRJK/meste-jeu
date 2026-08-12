@@ -41,6 +41,8 @@ Il affiche :
 
 La zone « Conduite live » propose l’action principale compatible avec l’état courant, ainsi que les actions critiques disponibles. Chaque commande demande une confirmation, passe par `POST /api/admin/live-control`, puis force une actualisation du dashboard. Les transitions, refus et écritures d’audit restent sous l’autorité du moteur serveur. Le contrat complet est décrit dans `docs/live-control.md`.
 
+La zone « Exports CSV » génère les fichiers joueurs, classement et réponses pour l’événement sélectionné. Le journal administrateur expose les trente dernières actions globales sans leurs métadonnées internes. Le contrat d’encodage, de sécurité et de calcul est décrit dans `docs/admin-reporting.md`.
+
 ## Validation PostgreSQL
 
 Le test d’intégration de PR crée un administrateur, un événement isolé, une session, une question, des participants, une réponse et un score. Il vérifie la connexion, les agrégats du dashboard, la révocation de session et le verrouillage après cinq échecs. Comme les autres tests PostgreSQL, il est bloqué hors de la branche Neon éphémère associée à une Pull Request.

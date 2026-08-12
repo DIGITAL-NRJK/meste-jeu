@@ -7,11 +7,16 @@ import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth/admin-session";
 import { getServerEnv } from "@/lib/env/server";
 import { postgresAdminAuthRepository } from "@/server/repositories/admin-auth-repository";
 import { postgresAdminDashboardRepository } from "@/server/repositories/admin-dashboard-repository";
+import { postgresAdminReportingRepository } from "@/server/repositories/admin-reporting-repository";
 import { getAuthenticatedAdmin } from "@/server/services/admin-auth";
 import {
   AdminDashboardEventNotFoundError,
   getAdminDashboard,
 } from "@/server/services/admin-dashboard";
+import {
+  getAdminAuditLogs,
+  type AdminAuditLogEntry,
+} from "@/server/services/admin-reporting";
 
 export const dynamic = "force-dynamic";
 
@@ -52,5 +57,16 @@ export default async function AdminDashboardPage({
     throw error;
   }
 
-  return <AdminDashboardView admin={admin} initialDashboard={dashboard} />;
+  const auditLogs = await getAdminAuditLogs(
+    30,
+    postgresAdminReportingRepository,
+  ).catch((): AdminAuditLogEntry[] => []);
+
+  return (
+    <AdminDashboardView
+      admin={admin}
+      initialAuditLogs={auditLogs}
+      initialDashboard={dashboard}
+    />
+  );
 }

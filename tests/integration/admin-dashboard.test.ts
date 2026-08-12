@@ -9,6 +9,7 @@ import {
   adminSessions,
   adminUsers,
   answers,
+  auditLogs,
   categories,
   events,
   players,
@@ -22,6 +23,7 @@ import { hashAdminPassword } from "../../src/lib/auth/admin-password";
 import { getDb } from "../../src/lib/db/client";
 import { postgresAdminAuthRepository } from "../../src/server/repositories/admin-auth-repository";
 import { postgresAdminDashboardRepository } from "../../src/server/repositories/admin-dashboard-repository";
+import { postgresAdminReportingRepository } from "../../src/server/repositories/admin-reporting-repository";
 import {
   AdminInvalidCredentialsError,
   getAuthenticatedAdmin,
@@ -29,6 +31,10 @@ import {
   logoutAdmin,
 } from "../../src/server/services/admin-auth";
 import { getAdminDashboard } from "../../src/server/services/admin-dashboard";
+import {
+  createAdminExport,
+  getAdminAuditLogs,
+} from "../../src/server/services/admin-reporting";
 
 if (
   process.env.DATABASE_INTEGRATION_TARGET !== "neon-preview" ||
@@ -53,6 +59,7 @@ const playerIds = [randomUUID(), randomUUID()];
 const playerPublicCodes = [`HC-${randomUUID()}`, `HC-${randomUUID()}`];
 const answerId = randomUUID();
 const scoreEventId = randomUUID();
+const auditLogId = randomUUID();
 const adminEmail = `integration-admin-${randomUUID()}@example.com`;
 const eventSlug = `integration-admin-${randomUUID()}`;
 const password = "Congo!AdminIntegration2026";
@@ -158,10 +165,19 @@ describe("admin authentication and dashboard with PostgreSQL", () => {
       type: "ANSWER_CORRECT",
       points: 100,
     });
+    await db.insert(auditLogs).values({
+      id: auditLogId,
+      adminUserId: adminId,
+      action: "SESSION_STARTED",
+      entityType: "quiz_session",
+      entityId: sessionId,
+      createdAt: now,
+    });
   });
 
   afterAll(async () => {
     await db.delete(adminSessions).where(eq(adminSessions.adminUserId, adminId));
+    await db.delete(auditLogs).where(eq(auditLogs.id, auditLogId));
     await db.delete(scoreEvents).where(eq(scoreEvents.id, scoreEventId));
     await db.delete(answers).where(eq(answers.id, answerId));
     await db.delete(sessionQuestions).where(eq(sessionQuestions.id, occurrenceId));
@@ -256,5 +272,41 @@ describe("admin authentication and dashboard with PostgreSQL", () => {
         },
       ),
     ).rejects.toBeInstanceOf(AdminInvalidCredentialsError);
+  });
+
+  it("exporte les joueurs, le classement et les réponses puis expose l’audit", async () => {
+    const [playerExport, leaderboardExport, answerExport, recentAuditLogs] =
+      await Promise.all([
+        createAdminExport(
+          { kind: "players", eventSlug },
+          postgresAdminReportingRepository,
+        ),
+        createAdminExport(
+          { kind: "leaderboard", eventSlug },
+          postgresAdminReportingRepository,
+        ),
+        createAdminExport(
+          { kind: "answers", eventSlug },
+          postgresAdminReportingRepository,
+        ),
+        getAdminAuditLogs(100, postgresAdminReportingRepository),
+      ]);
+
+    expect(playerExport.content).toContain(playerPublicCodes[0]);
+    expect(playerExport.content).toContain("Makaya intégration");
+    expect(leaderboardExport.content).toContain(
+      `1;${playerPublicCodes[0]};Makaya intégration;100`,
+    );
+    expect(answerExport.content).toContain("Brazzaville");
+    expect(answerExport.content).toContain("Brazzaville;;;;5000;");
+    expect(answerExport.content).not.toContain("oui;5000;");
+    expect(recentAuditLogs).toContainEqual(
+      expect.objectContaining({
+        id: auditLogId,
+        action: "SESSION_STARTED",
+        entityId: sessionId,
+        adminDisplayName: "Régie intégration",
+      }),
+    );
   });
 });

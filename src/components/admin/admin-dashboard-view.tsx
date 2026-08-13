@@ -253,33 +253,76 @@ export function AdminDashboardView({
   const liveActions = dashboard.session
     ? getLiveControlActions(dashboard.session.status, question?.status ?? null)
     : [];
+  const eventQuery = selectedEvent
+    ? `?event=${encodeURIComponent(selectedEvent)}`
+    : "";
+  const responseProgress = question && dashboard.participants.registered > 0
+    ? Math.min(
+        100,
+        Math.round(
+          (question.answersReceived / dashboard.participants.registered) * 100,
+        ),
+      )
+    : 0;
+  const timerProgress = question?.closesAt
+    ? Math.max(
+        0,
+        Math.min(
+          100,
+          Math.round(
+            ((Date.parse(question.closesAt) - serverTime) /
+              (question.durationSeconds * 1_000)) *
+              100,
+          ),
+        ),
+      )
+    : 0;
 
   return (
-    <main className="admin-page">
-      <header className="admin-topbar">
-        <div className="admin-wordmark">
-          <span className="brand-mark" aria-hidden="true">M</span>
+    <main className="regie-shell">
+      <a className="regie-skip-link" href="#regie-content">
+        Aller au contenu
+      </a>
+
+      <aside className="regie-sidebar">
+        <a className="regie-brand" href="/admin" aria-label="Régie MESTE — accueil">
+          <span className="regie-brand-mark" aria-hidden="true">M</span>
           <span>
             <strong>RÉGIE MESTE</strong>
             <small>Héritage Congo</small>
           </span>
-        </div>
-        <div className="admin-account">
-          <span>{admin.displayName}</span>
-          <a href="/admin/accounts">Gérer les accès</a>
-          <button type="button" onClick={logout}>Se déconnecter</button>
-        </div>
-      </header>
+        </a>
 
-      <div className="admin-dashboard">
-        <section className="admin-dashboard-intro">
+        <nav className="regie-navigation" aria-label="Navigation de la régie">
+          <a className="is-active" href="/admin" aria-current="page">
+            <span aria-hidden="true">01</span> Vue de la salle
+          </a>
+          <a href="/admin/sessions"><span aria-hidden="true">02</span> Conducteur</a>
+          <a href="/admin/questions"><span aria-hidden="true">03</span> Questions</a>
+          <a href={`/admin/players${eventQuery}`}><span aria-hidden="true">04</span> Joueurs</a>
+          <a href={`/admin/rewards${eventQuery}`}><span aria-hidden="true">05</span> Lots</a>
+          <a href="/admin/accounts"><span aria-hidden="true">06</span> Accès</a>
+        </nav>
+
+        <div className="regie-sidebar-live">
           <div>
-            <p className="eyebrow">Table de supervision</p>
-            <h1>Vue de la salle</h1>
+            <span className={stale ? "is-stale" : undefined} aria-hidden="true" />
+            <p>{stale ? "Synchronisation interrompue" : "Régie synchronisée"}</p>
           </div>
+          <strong>{dashboard.event?.name ?? "Aucun événement sélectionné"}</strong>
+          <small>
+            {dashboard.session
+              ? `${dashboard.session.name} · ${dashboard.session.questionCount} questions`
+              : "Programmation en attente"}
+          </small>
+        </div>
+      </aside>
+
+      <section className="regie-workspace">
+        <header className="regie-toolbar">
           {dashboard.events.length ? (
-            <label className="admin-event-select">
-              <span>Événement</span>
+            <label className="regie-event-select">
+              <span>Événement supervisé</span>
               <select
                 value={selectedEvent}
                 onChange={(event) => selectEvent(event.target.value)}
@@ -291,250 +334,275 @@ export function AdminDashboardView({
                 ))}
               </select>
             </label>
-          ) : null}
-        </section>
+          ) : (
+            <p className="regie-toolbar-label">Aucun événement programmé</p>
+          )}
 
-        {stale ? (
-          <p className="admin-stale" role="status">
-            Actualisation interrompue. Les dernières données restent affichées.
-          </p>
-        ) : null}
+          <div className="regie-account">
+            <span className="regie-account-avatar" aria-hidden="true">
+              {admin.displayName.slice(0, 2).toUpperCase()}
+            </span>
+            <span>
+              <strong>{admin.displayName}</strong>
+              <a href="/admin/accounts">Gérer les accès</a>
+            </span>
+            <button type="button" onClick={logout}>Se déconnecter</button>
+          </div>
+        </header>
 
-        {!dashboard.event ? (
-          <section className="admin-empty-state">
-            <p className="eyebrow">Aucun événement</p>
-            <h2>La régie attend sa première programmation.</h2>
-            <p>Créez l’événement, sa session et son conducteur avant d’ouvrir la supervision.</p>
-            <a href="/admin/sessions">Créer la première programmation →</a>
-          </section>
-        ) : (
-          <>
-            <section className="admin-live-line" aria-label="État de la session">
-              <div className="admin-live-line-track" aria-hidden="true" />
-              <div className="admin-live-line-event">
+        <div className="regie-dashboard" id="regie-content">
+          <header className="regie-page-heading">
+            <div>
+              <p className="regie-kicker">Table de supervision</p>
+              <h1>Vue de la salle</h1>
+              <p>Conduisez la session et suivez la participation en temps réel.</p>
+            </div>
+            {dashboard.event ? (
+              <div className="regie-context-badges" aria-label="Contexte de l’événement">
                 <span className={`admin-status admin-status--${dashboard.event.status.toLowerCase()}`}>
                   {statusLabel(dashboard.event.status)}
                 </span>
                 <span className={`admin-environment admin-environment--${dashboard.event.environment.toLowerCase()}`}>
-                  {dashboard.event.environment === "TEST" ? "Test" : "Production"}
-                </span>
-                <small>Événement</small>
-                <strong>{dashboard.event.name}</strong>
-              </div>
-              <div className="admin-live-line-session">
-                <small>Session actuelle</small>
-                <strong>{dashboard.session?.name ?? "Aucune session"}</strong>
-                <span>
-                  {dashboard.session
-                    ? `${statusLabel(dashboard.session.status)} · ${dashboard.session.questionCount} questions`
-                    : "En attente de programmation"}
+                  {dashboard.event.environment === "TEST" ? "Mode test" : "Production"}
                 </span>
               </div>
-              <div className="admin-live-line-time">
-                <small>Temps restant</small>
-                <strong>{remainingTime(question?.closesAt ?? null, serverTime)}</strong>
-              </div>
-            </section>
-
-            {dashboard.session && dashboard.session.status !== "FINISHED" ? (
-              <section
-                className="admin-control-deck"
-                aria-busy={commandPending}
-                aria-labelledby="live-controls-title"
-              >
-                <div>
-                  <p className="eyebrow">Conduite live</p>
-                  <h2 id="live-controls-title">Action suivante</h2>
-                  {commandMessage ? <p role="status">{commandMessage}</p> : null}
-                </div>
-                <div className="admin-control-actions">
-                  {liveActions.map((control) => (
-                    <button
-                      key={control.action}
-                      type="button"
-                      className={control.danger ? "admin-control-danger" : undefined}
-                      disabled={commandPending}
-                      onClick={() => runCommand(control.action, control.label)}
-                    >
-                      {control.label}
-                    </button>
-                  ))}
-                </div>
-              </section>
             ) : null}
+          </header>
 
-            <nav className="admin-shortcuts" aria-label="Accès rapides">
-              <a href={`/admin/players?event=${encodeURIComponent(selectedEvent)}`}>Joueurs</a>
-              <a href="#question">Question actuelle</a>
-              <a href="#classement">Classement</a>
-              <a href="/admin/sessions">Programmation</a>
-              <a href="/admin/questions">Questions</a>
-              <a href={`/admin/rewards?event=${encodeURIComponent(selectedEvent)}`}>Lots</a>
-              <a href="/admin/accounts">Administrateurs</a>
-              <a href="#exports">Exports</a>
-              <a href="#audit">Audit</a>
-            </nav>
+          {stale ? (
+            <p className="regie-alert" role="status">
+              Actualisation interrompue. Les dernières données reçues restent affichées.
+            </p>
+          ) : null}
 
-            <div className="admin-grid">
-              <section className="admin-panel admin-participants" id="participants">
-                <div className="admin-panel-heading">
-                  <div>
-                    <p className="eyebrow">Participants</p>
-                    <h2>Présence</h2>
-                  </div>
-                  <span className="admin-panel-index">P</span>
-                </div>
-                <div className="admin-presence-numbers">
-                  <div>
-                    <strong>{dashboard.participants.registered}</strong>
-                    <span>inscrits</span>
-                  </div>
-                  <div>
-                    <strong>{dashboard.participants.activeRecently}</strong>
-                    <span>actifs · 15 min</span>
-                  </div>
-                </div>
-                <a
-                  className="admin-library-link"
-                  href={`/admin/players?event=${encodeURIComponent(selectedEvent)}`}
-                >
-                  Rechercher et gérer les joueurs →
-                </a>
-              </section>
-
-              <section className="admin-panel admin-question" id="question">
-                <div className="admin-panel-heading">
-                  <div>
-                    <p className="eyebrow">Question actuelle</p>
-                    <h2>{question ? `Question ${question.position}` : "En attente"}</h2>
-                  </div>
-                  {question ? (
-                    <span className={`admin-status admin-status--${question.status.toLowerCase()}`}>
-                      {statusLabel(question.status)}
+          {!dashboard.event ? (
+            <section className="regie-empty-state">
+              <span className="regie-empty-mark" aria-hidden="true">M</span>
+              <p className="regie-kicker">Aucun événement</p>
+              <h2>La régie attend sa première programmation.</h2>
+              <p>Créez l’événement, ses sessions et leurs conducteurs avant d’ouvrir la supervision.</p>
+              <a href="/admin/sessions">Créer la première programmation</a>
+            </section>
+          ) : (
+            <>
+              <section
+                className="regie-live-card"
+                id="question"
+                aria-labelledby="regie-live-title"
+                aria-busy={commandPending}
+              >
+                <div className="regie-live-main">
+                  <div className="regie-live-meta">
+                    <span className="regie-live-dot" aria-hidden="true" />
+                    <span>{dashboard.session ? statusLabel(dashboard.session.status) : "Programmation"}</span>
+                    <span aria-hidden="true">•</span>
+                    <span>
+                      {dashboard.session
+                        ? `${dashboard.session.name} · ${dashboard.session.questionCount} questions`
+                        : "Aucune session sélectionnée"}
                     </span>
+                  </div>
+
+                  <div className="regie-question-copy">
+                    <p className="regie-kicker">
+                      {question ? `Question ${question.position}` : "Action suivante"}
+                    </p>
+                    <h2 id="regie-live-title">
+                      {question?.questionText ?? "Préparez une session pour commencer la partie."}
+                    </h2>
+                    {question ? (
+                      <div className="regie-response-progress">
+                        <span>
+                          <strong>{question.answersReceived}</strong> réponse{question.answersReceived > 1 ? "s" : ""}
+                          {dashboard.participants.registered
+                            ? ` sur ${dashboard.participants.registered} inscrits`
+                            : ""}
+                        </span>
+                        <progress
+                          aria-label="Progression des réponses reçues"
+                          max={100}
+                          value={responseProgress}
+                        />
+                      </div>
+                    ) : (
+                      <p className="regie-live-helper">
+                        Sélectionnez ou préparez le conducteur depuis la programmation.
+                      </p>
+                    )}
+                  </div>
+
+                  {dashboard.session && dashboard.session.status !== "FINISHED" ? (
+                    <div className="regie-live-controls">
+                      <div className="regie-control-actions">
+                        {liveActions.map((control) => (
+                          <button
+                            key={control.action}
+                            type="button"
+                            className={control.danger ? "is-danger" : undefined}
+                            disabled={commandPending}
+                            onClick={() => runCommand(control.action, control.label)}
+                          >
+                            {control.label}
+                          </button>
+                        ))}
+                      </div>
+                      {commandMessage ? <p role="status">{commandMessage}</p> : null}
+                    </div>
                   ) : null}
                 </div>
-                {question ? (
-                  <>
-                    <p className="admin-question-copy">{question.questionText}</p>
-                    <dl className="admin-question-stats">
-                      <div><dt>Réponses</dt><dd>{question.answersReceived}</dd></div>
-                      <div><dt>Correctes</dt><dd>{question.correctAnswers}</dd></div>
-                      <div><dt>Réussite</dt><dd>{question.successRate} %</dd></div>
-                      <div><dt>Temps moyen</dt><dd>{formatResponseTime(question.averageResponseTimeMs)}</dd></div>
+
+                <aside className="regie-timer" aria-label="Minuterie de la question">
+                  <p>Temps restant</p>
+                  <strong>{remainingTime(question?.closesAt ?? null, serverTime)}</strong>
+                  <progress
+                    aria-label="Temps restant pour répondre"
+                    max={100}
+                    value={timerProgress}
+                  />
+                  <small>
+                    {question
+                      ? `${question.durationSeconds} secondes prévues`
+                      : "La minuterie apparaîtra au lancement"}
+                  </small>
+                </aside>
+              </section>
+
+              <section className="regie-metrics" aria-label="Indicateurs de la salle">
+                <article>
+                  <span className="regie-metric-index" aria-hidden="true">01</span>
+                  <p>Participants</p>
+                  <strong>{dashboard.participants.registered}</strong>
+                  <small>{dashboard.participants.activeRecently} actifs sur les 15 dernières minutes</small>
+                  <a href={`/admin/players${eventQuery}`}>Gérer les joueurs</a>
+                </article>
+                <article>
+                  <span className="regie-metric-index" aria-hidden="true">02</span>
+                  <p>Réponses reçues</p>
+                  <strong>{question?.answersReceived ?? 0}</strong>
+                  <small>{question ? `${responseProgress} % des inscrits` : "Aucune question en cours"}</small>
+                  <a href="#question">Voir la question</a>
+                </article>
+                <article>
+                  <span className="regie-metric-index" aria-hidden="true">03</span>
+                  <p>Taux de réussite</p>
+                  <strong>{question ? `${question.successRate} %` : "—"}</strong>
+                  <small>{question ? `${question.correctAnswers} réponses correctes` : "Résultat en attente"}</small>
+                  <a href="#classement">Voir le classement</a>
+                </article>
+                <article>
+                  <span className="regie-metric-index" aria-hidden="true">04</span>
+                  <p>Temps moyen</p>
+                  <strong>{formatResponseTime(question?.averageResponseTimeMs ?? null)}</strong>
+                  <small>{question ? `sur ${question.durationSeconds} secondes` : "Mesure indisponible"}</small>
+                  <a href="#audit">Consulter l’audit</a>
+                </article>
+              </section>
+
+              <div className="regie-content-grid">
+                <section className="regie-panel regie-ranking" id="classement">
+                  <div className="regie-panel-heading">
+                    <div>
+                      <p className="regie-kicker">Classement live</p>
+                      <h2>Les dix premières places</h2>
+                    </div>
+                    <span className="regie-panel-count">Top 10</span>
+                  </div>
+                  {dashboard.leaderboard.length ? (
+                    <ol className="regie-ranking-list">
+                      {dashboard.leaderboard.map((entry) => (
+                        <li key={entry.publicCode}>
+                          <span className="regie-rank">{String(entry.position).padStart(2, "0")}</span>
+                          <span>
+                            <strong>{entry.nickname}</strong>
+                            <small>{entry.publicCode}</small>
+                          </span>
+                          <strong>{entry.points.toLocaleString("fr-FR")} pts</strong>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="regie-panel-empty">
+                      Le classement se remplira avec les premières participations.
+                    </p>
+                  )}
+                </section>
+
+                <div className="regie-utilities">
+                  <section className="regie-panel" id="bibliotheque">
+                    <div className="regie-panel-heading">
+                      <div>
+                        <p className="regie-kicker">Bibliothèque</p>
+                        <h2>Questions</h2>
+                      </div>
+                      <span className="regie-panel-count">{dashboard.questionLibrary.total}</span>
+                    </div>
+                    <dl className="regie-library-breakdown">
+                      <div><dt>Brouillons</dt><dd>{dashboard.questionLibrary.drafts}</dd></div>
+                      <div><dt>En revue</dt><dd>{dashboard.questionLibrary.inReview}</dd></div>
+                      <div><dt>Validées</dt><dd>{dashboard.questionLibrary.validated}</dd></div>
                     </dl>
-                  </>
-                ) : (
-                  <p className="admin-panel-empty">Aucune question n’est positionnée dans la session courante.</p>
-                )}
-              </section>
+                    <a className="regie-text-link" href="/admin/questions">
+                      Gérer les questions et catégories
+                    </a>
+                  </section>
 
-              <section className="admin-panel admin-ranking" id="classement">
-                <div className="admin-panel-heading">
-                  <div>
-                    <p className="eyebrow">Classement</p>
-                    <h2>Top 10</h2>
-                  </div>
-                  <span className="admin-panel-index">10</span>
+                  <section className="regie-panel" id="exports">
+                    <div className="regie-panel-heading">
+                      <div>
+                        <p className="regie-kicker">Données</p>
+                        <h2>Exports CSV</h2>
+                      </div>
+                      <span className="regie-panel-count">CSV</span>
+                    </div>
+                    <div className="regie-export-actions">
+                      {(Object.keys(exportLabels) as AdminExportKind[]).map((kind) => (
+                        <button
+                          key={kind}
+                          type="button"
+                          disabled={exportPending !== null}
+                          onClick={() => downloadExport(kind)}
+                        >
+                          {exportPending === kind ? "Génération…" : exportLabels[kind]}
+                        </button>
+                      ))}
+                    </div>
+                    {exportMessage ? <p className="regie-export-message" role="status">{exportMessage}</p> : null}
+                  </section>
                 </div>
-                {dashboard.leaderboard.length ? (
-                  <ol className="admin-ranking-list">
-                    {dashboard.leaderboard.map((entry) => (
-                      <li key={entry.publicCode}>
-                        <span className="admin-rank">{entry.position}</span>
-                        <span className="admin-ranking-player">
-                          <strong>{entry.nickname}</strong>
-                          <small>{entry.publicCode}</small>
-                        </span>
-                        <strong>{entry.points.toLocaleString("fr-FR")} pts</strong>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="admin-panel-empty">Le classement se remplira avec les premières inscriptions.</p>
-                )}
-              </section>
 
-              <section className="admin-panel admin-library" id="bibliotheque">
-                <div className="admin-panel-heading">
-                  <div>
-                    <p className="eyebrow">Bibliothèque</p>
-                    <h2>Questions</h2>
+                <section className="regie-panel regie-audit" id="audit">
+                  <div className="regie-panel-heading">
+                    <div>
+                      <p className="regie-kicker">Traçabilité</p>
+                      <h2>Journal administrateur</h2>
+                    </div>
+                    <span className="regie-panel-count" data-testid="audit-count">{auditLogs.length}</span>
                   </div>
-                  <span className="admin-panel-index">Q</span>
-                </div>
-                <div className="admin-library-total">
-                  <strong>{dashboard.questionLibrary.total}</strong>
-                  <span>questions au total</span>
-                </div>
-                <dl className="admin-library-breakdown">
-                  <div><dt>Brouillons</dt><dd>{dashboard.questionLibrary.drafts}</dd></div>
-                  <div><dt>En revue</dt><dd>{dashboard.questionLibrary.inReview}</dd></div>
-                  <div><dt>Validées</dt><dd>{dashboard.questionLibrary.validated}</dd></div>
-                </dl>
-                <a className="admin-library-link" href="/admin/questions">
-                  Gérer les questions et catégories →
-                </a>
-              </section>
-
-              <section className="admin-panel admin-exports" id="exports">
-                <div className="admin-panel-heading">
-                  <div>
-                    <p className="eyebrow">Données</p>
-                    <h2>Exports CSV</h2>
-                  </div>
-                  <span className="admin-panel-index">CSV</span>
-                </div>
-                <p className="admin-panel-empty">
-                  Fichiers UTF-8 prêts pour Excel et Google Sheets.
-                </p>
-                <div className="admin-export-actions">
-                  {(Object.keys(exportLabels) as AdminExportKind[]).map((kind) => (
-                    <button
-                      key={kind}
-                      type="button"
-                      disabled={exportPending !== null}
-                      onClick={() => downloadExport(kind)}
-                    >
-                      {exportPending === kind ? "Génération…" : exportLabels[kind]}
-                    </button>
-                  ))}
-                </div>
-                {exportMessage ? <p className="admin-export-message" role="status">{exportMessage}</p> : null}
-              </section>
-
-              <section className="admin-panel admin-audit" id="audit">
-                <div className="admin-panel-heading">
-                  <div>
-                    <p className="eyebrow">Traçabilité</p>
-                    <h2>Journal administrateur</h2>
-                  </div>
-                  <span className="admin-panel-index">{auditLogs.length}</span>
-                </div>
-                {auditLogs.length ? (
-                  <ol className="admin-audit-list" aria-label="Journal des dernières actions administratives">
-                    {auditLogs.map((entry) => (
-                      <li key={entry.id}>
-                        <span className="admin-audit-marker" aria-hidden="true" />
-                        <span>
-                          <strong>{auditActionLabels[entry.action]}</strong>
-                          <small>
-                            {entry.adminDisplayName} · {entry.entityType}
-                            {entry.entityId ? ` · ${entry.entityId.slice(0, 8)}` : ""}
-                          </small>
-                        </span>
-                        <time dateTime={entry.createdAt}>{formatAuditTime(entry.createdAt)}</time>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="admin-panel-empty">Aucune action administrative journalisée.</p>
-                )}
-              </section>
-            </div>
-          </>
-        )}
-      </div>
+                  {auditLogs.length ? (
+                    <ol className="regie-audit-list" aria-label="Journal des dernières actions administratives">
+                      {auditLogs.map((entry) => (
+                        <li key={entry.id}>
+                          <span className="regie-audit-marker" aria-hidden="true" />
+                          <span>
+                            <strong>{auditActionLabels[entry.action]}</strong>
+                            <small>
+                              {entry.adminDisplayName} · {entry.entityType}
+                              {entry.entityId ? ` · ${entry.entityId.slice(0, 8)}` : ""}
+                            </small>
+                          </span>
+                          <time dateTime={entry.createdAt}>{formatAuditTime(entry.createdAt)}</time>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="regie-panel-empty">Aucune action administrative journalisée.</p>
+                  )}
+                </section>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
     </main>
   );
 }

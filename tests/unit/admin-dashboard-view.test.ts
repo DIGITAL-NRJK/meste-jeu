@@ -63,6 +63,6 @@ describe("AdminDashboardView", () => {
     expect(html).toContain('href="/admin/accounts"');
     expect(html).toContain('aria-label="Journal des dernières actions administratives"');
     expect(html).toContain("Session créée");
-    expect(html).toContain('<span class="admin-panel-index">1</span>');
+    expect(html).toContain('data-testid="audit-count">1</span>');
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  categoryUpdateInputSchema,
   questionDraftInputSchema,
   questionListFiltersSchema,
 } from "../../src/lib/validation/question-library";
@@ -94,5 +95,20 @@ describe("questionListFiltersSchema", () => {
     expect(questionListFiltersSchema.safeParse({ limit: 101 }).success).toBe(
       false,
     );
+  });
+
+  it("accepte une limite issue des paramètres d’URL", () => {
+    expect(questionListFiltersSchema.parse({ limit: "25" }).limit).toBe(25);
+  });
+});
+
+describe("categoryUpdateInputSchema", () => {
+  it("exige explicitement l’état actif de la catégorie", () => {
+    expect(
+      categoryUpdateInputSchema.parse({ name: "Histoire", active: false }),
+    ).toMatchObject({ name: "Histoire", active: false });
+    expect(
+      categoryUpdateInputSchema.safeParse({ name: "Histoire" }).success,
+    ).toBe(false);
   });
 });

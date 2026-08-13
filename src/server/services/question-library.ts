@@ -5,6 +5,8 @@ import { z } from "zod";
 import {
   categoryInputSchema,
   type CategoryInput,
+  categoryUpdateInputSchema,
+  type CategoryUpdateInput,
   questionDraftInputSchema,
   type QuestionDraftInput,
   questionListFiltersSchema,
@@ -88,9 +90,17 @@ export type QuestionUpdateOutcome =
   | { outcome: "not_found" }
   | { outcome: "not_editable" };
 
+export type CategoryUpdateOutcome =
+  | { outcome: "updated"; category: QuestionCategory }
+  | { outcome: "not_found" };
+
 export interface QuestionLibraryRepository {
   createCategory(input: CategoryInput & { slug: string }): Promise<QuestionCategory>;
   listCategories(activeOnly: boolean): Promise<QuestionCategory[]>;
+  updateCategory(
+    categoryId: string,
+    input: CategoryUpdateInput & { slug: string },
+  ): Promise<CategoryUpdateOutcome>;
   createQuestion(input: PersistQuestionDraft): Promise<AdminQuestionDetail>;
   updateQuestion(
     questionId: string,
@@ -273,6 +283,32 @@ export function listCategories(
   activeOnly = false,
 ) {
   return repository.listCategories(activeOnly);
+}
+
+export async function updateCategory(
+  categoryId: string,
+  input: unknown,
+  repository: QuestionLibraryRepository,
+): Promise<QuestionCategory> {
+  const id = parseInput(z.uuid().safeParse(categoryId));
+  const category = parseInput(categoryUpdateInputSchema.safeParse(input));
+  const slug = normalizeCategorySlug(category.name);
+
+  if (!slug) {
+    throw new QuestionInputError([]);
+  }
+
+  try {
+    const result = await repository.updateCategory(id, { ...category, slug });
+
+    if (result.outcome === "not_found") {
+      throw new QuestionCategoryNotFoundError();
+    }
+
+    return result.category;
+  } catch (error) {
+    return mapPersistenceError(error);
+  }
 }
 
 export async function createQuestionDraft(

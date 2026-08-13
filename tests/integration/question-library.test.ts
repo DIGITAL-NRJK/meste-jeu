@@ -23,6 +23,7 @@ import {
   QuestionNotEditableError,
   QuestionNotReadyError,
   submitQuestionForReview,
+  updateCategory,
   updateQuestionDraft,
   validateQuestion,
 } from "../../src/server/services/question-library";
@@ -118,6 +119,32 @@ describe("question library with PostgreSQL", () => {
     }
 
     await db.delete(adminUsers).where(eq(adminUsers.id, actorAdminId));
+  });
+
+  it("modifie et réactive une catégorie sans perdre son identifiant", async () => {
+    if (!categoryId) throw new Error("Integration category was not created");
+
+    const inactive = await updateCategory(
+      categoryId,
+      {
+        name: categoryName,
+        description: "Catégorie temporairement inactive.",
+        active: false,
+      },
+      postgresQuestionLibraryRepository,
+    );
+    expect(inactive).toMatchObject({ id: categoryId, active: false });
+
+    const active = await updateCategory(
+      categoryId,
+      {
+        name: categoryName,
+        description: "Catégorie temporaire réservée au test d’intégration.",
+        active: true,
+      },
+      postgresQuestionLibraryRepository,
+    );
+    expect(active).toMatchObject({ id: categoryId, active: true });
   });
 
   it("gère le cycle complet sans exposer ni perdre la bonne réponse", async () => {

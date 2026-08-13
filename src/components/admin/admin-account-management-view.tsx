@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 
+import { AdminRegieShell } from "@/components/admin/admin-regie-shell";
 import type { AdminAccount } from "@/server/services/admin-account-management";
 import type { AdminIdentity } from "@/server/services/admin-auth";
 
@@ -152,24 +152,17 @@ export function AdminAccountManagementView({
   }
 
   return (
-    <main className="admin-page admin-accounts-page">
-      <header className="admin-topbar">
-        <div className="admin-wordmark">
-          <span className="brand-mark" aria-hidden="true">M</span>
-          <span><strong>RÉGIE MESTE</strong><small>Héritage Congo</small></span>
-        </div>
-        <div className="admin-account">
-          <span>{admin.displayName}</span>
-          <button type="button" onClick={logout}>Se déconnecter</button>
-        </div>
-      </header>
-
-      <div className="admin-accounts-shell" aria-busy={pending}>
+    <AdminRegieShell
+      activePage="accounts"
+      admin={admin}
+      onLogout={logout}
+      toolbarLabel="Sécurité de la régie"
+    >
+      <div className="admin-accounts-shell admin-subpage-shell" aria-busy={pending}>
         <section className="admin-accounts-hero">
           <div>
-            <Link href="/admin">← Retour à la régie</Link>
             <p className="eyebrow">Sécurité de la régie</p>
-            <h1>Administrateurs</h1>
+            <h1>Accès administrateurs</h1>
             <p>
               Créez les accès nominatifs et coupez immédiatement ceux qui ne
               doivent plus accéder à la régie.
@@ -284,6 +277,6 @@ export function AdminAccountManagementView({
           </section>
         </div>
       </div>
-    </main>
+    </AdminRegieShell>
   );
 }

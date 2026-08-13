@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 
+import { AdminRegieShell } from "@/components/admin/admin-regie-shell";
 import type { AdminIdentity } from "@/server/services/admin-auth";
 import type {
   AdminReward,
@@ -261,38 +262,31 @@ export function AdminRewardsView({
   }
 
   return (
-    <main className="admin-page admin-rewards-page">
-      <header className="admin-topbar">
-        <div className="admin-wordmark">
-          <span className="brand-mark" aria-hidden="true">M</span>
-          <span><strong>RÉGIE MESTE</strong><small>Héritage Congo</small></span>
-        </div>
-        <div className="admin-account">
-          <span>{admin.displayName}</span>
-          <button type="button" onClick={logout}>Se déconnecter</button>
-        </div>
-      </header>
-
-      <div className="reward-management-shell" aria-busy={pending}>
+    <AdminRegieShell
+      activePage="rewards"
+      admin={admin}
+      eventName={initialEvent?.name}
+      eventSlug={eventSlug}
+      onLogout={logout}
+      toolbar={initialEvents.length ? (
+        <label className="regie-event-select">
+          <span>Événement</span>
+          <select value={eventSlug} onChange={(event) => void changeEvent(event.target.value)}>
+            {initialEvents.map((event) => (
+              <option key={event.id} value={event.slug}>{event.name}</option>
+            ))}
+          </select>
+        </label>
+      ) : undefined}
+      toolbarLabel="Récompenses"
+    >
+      <div className="reward-management-shell admin-subpage-shell" aria-busy={pending}>
         <section className="reward-management-hero">
           <div>
-            <Link href={eventSlug ? `/admin?event=${encodeURIComponent(eventSlug)}` : "/admin"}>
-              ← Retour à la régie
-            </Link>
             <p className="eyebrow">Récompenses</p>
             <h1>Gestion des lots</h1>
             <p>Préparez les lots, attribuez-les aux gagnants et suivez leur remise.</p>
           </div>
-          {initialEvents.length ? (
-            <label className="admin-event-select">
-              <span>Événement</span>
-              <select value={eventSlug} onChange={(event) => void changeEvent(event.target.value)}>
-                {initialEvents.map((event) => (
-                  <option key={event.id} value={event.slug}>{event.name}</option>
-                ))}
-              </select>
-            </label>
-          ) : null}
         </section>
 
         {message ? <p className="reward-management-message" role="status">{message}</p> : null}
@@ -385,6 +379,6 @@ export function AdminRewardsView({
           </div>
         )}
       </div>
-    </main>
+    </AdminRegieShell>
   );
 }

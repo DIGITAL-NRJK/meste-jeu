@@ -302,6 +302,16 @@ export function AdminDashboardView({
           <a href={`/admin/players${eventQuery}`}><span aria-hidden="true">04</span> Joueurs</a>
           <a href={`/admin/rewards${eventQuery}`}><span aria-hidden="true">05</span> Lots</a>
           <a href="/admin/accounts"><span aria-hidden="true">06</span> Accès</a>
+          {selectedEvent ? (
+            <a
+              className="regie-player-entry"
+              href={`/play/${encodeURIComponent(selectedEvent)}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span aria-hidden="true">↗</span> Espace joueur
+            </a>
+          ) : null}
         </nav>
 
         <div className="regie-sidebar-live">

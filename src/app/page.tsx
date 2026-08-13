@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PublicQuizEntry } from "@/components/player/public-quiz-entry";
 
 export default function HomePage() {
   return (
@@ -17,10 +17,7 @@ export default function HomePage() {
             République du Congo.
           </p>
         </div>
-        <Link className="primary-button landing-button" href="/play/heritage-congo-2026">
-          Participer au quiz
-          <span aria-hidden="true">→</span>
-        </Link>
+        <PublicQuizEntry />
         <p className="landing-footnote">Pensé pour votre téléphone · Aucun compte requis</p>
       </section>
     </main>

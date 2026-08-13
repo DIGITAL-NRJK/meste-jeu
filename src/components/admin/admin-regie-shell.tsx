@@ -79,6 +79,17 @@ export function AdminRegieShell({
               </a>
             );
           })}
+          {eventSlug ? (
+            <a
+              className="regie-player-entry"
+              href={`/play/${encodeURIComponent(eventSlug)}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span aria-hidden="true">↗</span>
+              Espace joueur
+            </a>
+          ) : null}
         </nav>
 
         <div className="regie-sidebar-live">

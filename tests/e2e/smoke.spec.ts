@@ -19,6 +19,36 @@ test("la fondation mobile et le health check répondent", async ({
   await expect(health.json()).resolves.toMatchObject({ status: "ok" });
 });
 
+test("l’accueil ouvre l’événement de production retourné par le serveur", async ({
+  page,
+}) => {
+  await page.route("**/api/events/active", async (route) => {
+    await route.fulfill({
+      json: {
+        event: {
+          slug: "tombola-fete-independance-republique-congo-66e-anniversaire",
+          name: "Tombola — 66e anniversaire",
+          status: "READY",
+        },
+      },
+    });
+  });
+  await page.route("**/api/me", async (route) => {
+    await route.fulfill({
+      status: 401,
+      json: { error: { code: "UNAUTHENTICATED" } },
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Participer au quiz" }).click();
+
+  await expect(page).toHaveURL(
+    /\/play\/tombola-fete-independance-republique-congo-66e-anniversaire$/,
+  );
+  await expect(page.getByLabel("Votre nom de joueur")).toBeVisible();
+});
+
 test("le joueur s’inscrit et rejoint le lobby sur mobile", async ({ page }) => {
   await page.route("**/api/me", async (route) => {
     await route.fulfill({ status: 401, json: { error: { code: "UNAUTHENTICATED" } } });

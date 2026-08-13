@@ -64,11 +64,12 @@ describe("AdminProgrammingView", () => {
   });
 
   it("présente uniquement la réserve validée et le conducteur ordonné", () => {
+    const readyEvent = { ...event, status: "READY" as const };
     const html = renderToStaticMarkup(
       createElement(AdminProgrammingView, {
         admin,
-        initialEvents: [event],
-        initialEvent: event,
+        initialEvents: [readyEvent],
+        initialEvent: readyEvent,
         initialSessions: [
           {
             id: "00000000-0000-4000-8000-000000000005",
@@ -97,6 +98,7 @@ describe("AdminProgrammingView", () => {
     expect(html).toContain("République du Congo");
     expect(html).toContain("Verrouiller et rendre prête");
     expect(html).toContain("Test — joueurs supprimables");
-    expect(html).toContain("Modifier");
+    expect(html).toContain("Ouvrir l’espace joueur");
+    expect(html).toContain('href="/play/heritage-congo-2026"');
   });
 });

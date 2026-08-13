@@ -9,9 +9,12 @@ import {
   adminUsers,
   auditLogs,
   categories,
+  events,
   questionOptions,
   questions,
   questionSources,
+  quizSessions,
+  sessionQuestions,
 } from "../../db/schema";
 import { getDb } from "../../src/lib/db/client";
 import { postgresQuestionLibraryRepository } from "../../src/server/repositories/question-library-repository";
@@ -19,12 +22,12 @@ import {
   archiveQuestion,
   createCategory,
   createQuestionDraft,
+  deleteQuestion,
   duplicateQuestion,
-  QuestionNotEditableError,
   QuestionNotReadyError,
   submitQuestionForReview,
   updateCategory,
-  updateQuestionDraft,
+  updateQuestion,
   validateQuestion,
 } from "../../src/server/services/question-library";
 
@@ -41,6 +44,8 @@ const db = getDb();
 const actorAdminId = randomUUID();
 const categoryName = `Histoire intégration ${randomUUID()}`;
 let categoryId: string | undefined;
+const eventId = randomUUID();
+const sessionId = randomUUID();
 
 const serviceDependencies = {
   repository: postgresQuestionLibraryRepository,
@@ -104,6 +109,11 @@ describe("question library with PostgreSQL", () => {
       const questionIds = storedQuestions.map((question) => question.id);
 
       await db.delete(auditLogs).where(eq(auditLogs.adminUserId, actorAdminId));
+      await db
+        .delete(sessionQuestions)
+        .where(eq(sessionQuestions.quizSessionId, sessionId));
+      await db.delete(quizSessions).where(eq(quizSessions.id, sessionId));
+      await db.delete(events).where(eq(events.id, eventId));
 
       if (questionIds.length > 0) {
         await db
@@ -196,14 +206,32 @@ describe("question library with PostgreSQL", () => {
     expect(validated.validatedAt).toBeInstanceOf(Date);
     expect(validated.sources).toHaveLength(1);
 
-    await expect(
-      updateQuestionDraft(
-        validated.id,
-        completeDraft(),
-        actorAdminId,
-        serviceDependencies,
-      ),
-    ).rejects.toBeInstanceOf(QuestionNotEditableError);
+    const countBeforeEdit = await db
+      .select({ id: questions.id })
+      .from(questions)
+      .where(eq(questions.categoryId, categoryId!));
+    const updated = await updateQuestion(
+      validated.id,
+      {
+        ...completeDraft(),
+        questionText:
+          "À quelle date la République du Congo a-t-elle accédé à l’indépendance ?",
+      },
+      actorAdminId,
+      serviceDependencies,
+    );
+    const countAfterEdit = await db
+      .select({ id: questions.id })
+      .from(questions)
+      .where(eq(questions.categoryId, categoryId!));
+
+    expect(updated).toMatchObject({
+      id: validated.id,
+      status: "VALIDATED",
+      questionText:
+        "À quelle date la République du Congo a-t-elle accédé à l’indépendance ?",
+    });
+    expect(countAfterEdit).toHaveLength(countBeforeEdit.length);
 
     const duplicate = await duplicateQuestion(
       validated.id,
@@ -214,6 +242,10 @@ describe("question library with PostgreSQL", () => {
       status: "DRAFT",
       questionText: expect.stringContaining("(copie)"),
     });
+    await deleteQuestion(duplicate.id, actorAdminId, serviceDependencies);
+    await expect(
+      db.select().from(questions).where(eq(questions.id, duplicate.id)),
+    ).resolves.toHaveLength(0);
 
     const archived = await archiveQuestion(
       validated.id,
@@ -240,5 +272,69 @@ describe("question library with PostgreSQL", () => {
         metadata: { sourceQuestionId: validated.id },
       }),
     );
+  });
+
+  it("supprime une question d’un conducteur en brouillon et renumérote les autres", async () => {
+    const first = await createQuestionDraft(
+      {
+        ...completeDraft(),
+        questionText: "Première question temporaire sur le Congo ?",
+      },
+      actorAdminId,
+      serviceDependencies,
+    );
+    const second = await createQuestionDraft(
+      {
+        ...completeDraft(),
+        questionText: "Deuxième question temporaire sur le Congo ?",
+        sources: completeDraft().sources.map((source) => ({
+          ...source,
+          url: `${source.url}/deuxieme`,
+        })),
+      },
+      actorAdminId,
+      serviceDependencies,
+    );
+
+    await db.insert(events).values({
+      id: eventId,
+      slug: `question-delete-${eventId}`,
+      name: "Recette suppression de question",
+      startsAt: new Date("2026-08-14T10:00:00.000Z"),
+      endsAt: new Date("2026-08-14T12:00:00.000Z"),
+      timezone: "Africa/Accra",
+      environment: "TEST",
+      status: "DRAFT",
+    });
+    await db.insert(quizSessions).values({
+      id: sessionId,
+      eventId,
+      name: "Conducteur temporaire",
+      slug: "conducteur-temporaire",
+      mode: "LIVE",
+      status: "DRAFT",
+    });
+    await db.insert(sessionQuestions).values([
+      {
+        quizSessionId: sessionId,
+        questionId: first.id,
+        position: 1,
+        durationSeconds: 30,
+      },
+      {
+        quizSessionId: sessionId,
+        questionId: second.id,
+        position: 2,
+        durationSeconds: 30,
+      },
+    ]);
+
+    await deleteQuestion(first.id, actorAdminId, serviceDependencies);
+
+    const remaining = await db
+      .select({ questionId: sessionQuestions.questionId, position: sessionQuestions.position })
+      .from(sessionQuestions)
+      .where(eq(sessionQuestions.quizSessionId, sessionId));
+    expect(remaining).toEqual([{ questionId: second.id, position: 1 }]);
   });
 });

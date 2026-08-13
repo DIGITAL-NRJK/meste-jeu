@@ -88,7 +88,12 @@ export type QuestionTransitionOutcome =
 export type QuestionUpdateOutcome =
   | { outcome: "updated"; question: AdminQuestionDetail }
   | { outcome: "not_found" }
-  | { outcome: "not_editable" };
+  | { outcome: "not_editable" }
+  | { outcome: "protected" }
+  | { outcome: "incomplete" }
+  | { outcome: "category_inactive" };
+
+export type QuestionDeleteOutcome = "deleted" | "not_found" | "protected";
 
 export type CategoryUpdateOutcome =
   | { outcome: "updated"; category: QuestionCategory }
@@ -106,6 +111,11 @@ export interface QuestionLibraryRepository {
     questionId: string,
     input: PersistQuestionDraft,
   ): Promise<QuestionUpdateOutcome>;
+  deleteQuestion(
+    questionId: string,
+    actorAdminId: string,
+    now: Date,
+  ): Promise<QuestionDeleteOutcome>;
   getAdminQuestion(questionId: string): Promise<AdminQuestionDetail | null>;
   listQuestions(filters: QuestionListFilters): Promise<QuestionSummary[]>;
   submitForReview(
@@ -143,6 +153,13 @@ export class QuestionNotEditableError extends Error {
   constructor() {
     super("Question is not editable");
     this.name = "QuestionNotEditableError";
+  }
+}
+
+export class QuestionProtectedError extends Error {
+  constructor() {
+    super("Question is protected by a prepared or played session");
+    this.name = "QuestionProtectedError";
   }
 }
 
@@ -334,7 +351,7 @@ export async function createQuestionDraft(
   }
 }
 
-export async function updateQuestionDraft(
+export async function updateQuestion(
   questionId: string,
   input: unknown,
   actorAdminId: string,
@@ -362,7 +379,40 @@ export async function updateQuestionDraft(
     throw new QuestionNotEditableError();
   }
 
+  if (result.outcome === "protected") {
+    throw new QuestionProtectedError();
+  }
+
+  if (
+    result.outcome === "incomplete" ||
+    result.outcome === "category_inactive"
+  ) {
+    throw new QuestionNotReadyError(result.outcome);
+  }
+
   return result.question;
+}
+
+export async function deleteQuestion(
+  questionId: string,
+  actorAdminId: string,
+  dependencies: QuestionServiceDependencies,
+): Promise<void> {
+  assertActorId(actorAdminId);
+  const id = parseInput(z.uuid().safeParse(questionId));
+  const outcome = await dependencies.repository.deleteQuestion(
+    id,
+    actorAdminId,
+    dependencies.now?.() ?? new Date(),
+  );
+
+  if (outcome === "not_found") {
+    throw new QuestionNotFoundError();
+  }
+
+  if (outcome === "protected") {
+    throw new QuestionProtectedError();
+  }
 }
 
 export async function getQuestion(

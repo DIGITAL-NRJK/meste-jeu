@@ -103,10 +103,8 @@ const difficultyLabels = {
 } as const;
 
 const actionLabels = {
-  DUPLICATE: "Dupliquer",
   SUBMIT_FOR_REVIEW: "Soumettre en revue",
   VALIDATE: "Valider la question",
-  ARCHIVE: "Archiver",
 } as const;
 
 function blankQuestion(categoryId: string): QuestionFormState {
@@ -205,6 +203,7 @@ export function AdminQuestionLibraryView({
     blankQuestion(firstActiveCategory),
   );
   const [creatingQuestion, setCreatingQuestion] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(false);
   const [editorSection, setEditorSection] =
     useState<QuestionEditorSection>("content");
   const [questionPending, setQuestionPending] = useState(false);
@@ -274,6 +273,7 @@ export function AdminQuestionLibraryView({
       setSelectedQuestion(payload.question);
       setQuestionForm(questionToForm(payload.question));
       setCreatingQuestion(false);
+      setEditingQuestion(false);
       setEditorSection("content");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Question indisponible.");
@@ -286,6 +286,7 @@ export function AdminQuestionLibraryView({
     setSelectedQuestion(null);
     setQuestionForm(blankQuestion(categories.find((category) => category.active)?.id ?? ""));
     setCreatingQuestion(true);
+    setEditingQuestion(false);
     setEditorSection("content");
     setMessage(null);
   }
@@ -308,8 +309,9 @@ export function AdminQuestionLibraryView({
       setSelectedQuestion(payload.question);
       setQuestionForm(questionToForm(payload.question));
       setCreatingQuestion(false);
+      setEditingQuestion(false);
       await refreshQuestions();
-      setMessage(selectedQuestion ? "Brouillon mis à jour." : "Brouillon créé.");
+      setMessage(selectedQuestion ? "Question mise à jour." : "Brouillon créé.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Enregistrement impossible.");
     } finally {
@@ -321,12 +323,6 @@ export function AdminQuestionLibraryView({
     action: keyof typeof actionLabels,
   ) {
     if (!selectedQuestion) return;
-    if (
-      action === "ARCHIVE" &&
-      !window.confirm("Archiver cette question ? Elle restera consultable et duplicable.")
-    ) {
-      return;
-    }
 
     setQuestionPending(true);
     setMessage(null);
@@ -343,10 +339,71 @@ export function AdminQuestionLibraryView({
       const payload = (await response.json()) as { question: AdminQuestionDetailView };
       setSelectedQuestion(payload.question);
       setQuestionForm(questionToForm(payload.question));
+      setEditingQuestion(false);
       await refreshQuestions();
       setMessage(`${actionLabels[action]} : terminé.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Action impossible.");
+    } finally {
+      setQuestionPending(false);
+    }
+  }
+
+  function startQuestionEdit() {
+    if (!selectedQuestion || selectedQuestion.status === "ARCHIVED") return;
+    setQuestionForm(questionToForm(selectedQuestion));
+    setEditingQuestion(true);
+    setMessage(null);
+  }
+
+  function cancelQuestionEdit() {
+    if (creatingQuestion) {
+      setSelectedQuestion(null);
+      setQuestionForm(
+        blankQuestion(categories.find((category) => category.active)?.id ?? ""),
+      );
+      setCreatingQuestion(false);
+      setEditorSection("content");
+      setMessage("Création annulée. Aucune question n’a été ajoutée.");
+      return;
+    }
+
+    if (!selectedQuestion) return;
+    setQuestionForm(questionToForm(selectedQuestion));
+    setEditingQuestion(false);
+    setEditorSection("content");
+    setMessage("Modifications annulées. La question reste inchangée.");
+  }
+
+  async function removeQuestion() {
+    if (!selectedQuestion) return;
+    if (
+      !window.confirm(
+        "Supprimer définitivement cette question ? Elle sera aussi retirée des sessions encore en brouillon. Cette action est irréversible.",
+      )
+    ) {
+      return;
+    }
+
+    setQuestionPending(true);
+    setMessage(null);
+    try {
+      const response = await apiFetch(
+        `/api/admin/questions/${selectedQuestion.id}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) throw new Error(await responseError(response));
+      setSelectedQuestion(null);
+      setQuestionForm(
+        blankQuestion(categories.find((category) => category.active)?.id ?? ""),
+      );
+      setCreatingQuestion(false);
+      setEditingQuestion(false);
+      setEditorSection("content");
+      await refreshQuestions();
+      setMessage("Question supprimée. Le nombre de fiches a été mis à jour.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Suppression impossible.");
     } finally {
       setQuestionPending(false);
     }
@@ -432,10 +489,7 @@ export function AdminQuestionLibraryView({
     router.refresh();
   }
 
-  const editable =
-    creatingQuestion ||
-    selectedQuestion?.status === "DRAFT" ||
-    selectedQuestion?.status === "REVIEW";
+  const editable = creatingQuestion || editingQuestion;
   const hasEditor = creatingQuestion || selectedQuestion !== null;
 
   return (
@@ -537,7 +591,7 @@ export function AdminQuestionLibraryView({
                   {selectedQuestion ? <span className={`question-status-chip question-status-chip--${selectedQuestion.status.toLowerCase()}`}>{statusLabels[selectedQuestion.status]}</span> : null}
                 </header>
 
-                {!editable ? <p className="question-editor-readonly">Cette fiche est en lecture seule. Dupliquez-la pour créer une nouvelle version modifiable.</p> : selectedQuestion?.status === "REVIEW" ? <p className="question-editor-readonly">Toute modification replacera cette question au statut Brouillon.</p> : null}
+                {!editable ? <p className="question-editor-readonly">{selectedQuestion?.status === "ARCHIVED" ? "Cette fiche archivée peut uniquement être supprimée." : "Cliquez sur Modifier pour changer cette question ou ses réponses sans créer de copie."}</p> : selectedQuestion?.status === "VALIDATED" ? <p className="question-editor-readonly">La question restera validée si elle conserve au moins deux réponses, une seule bonne réponse et une source active.</p> : null}
 
                 <div className="question-editor-tabs" role="tablist" aria-label="Sections de la fiche question">
                   <button type="button" role="tab" aria-selected={editorSection === "content"} aria-controls="question-editor-content" id="question-editor-content-tab" onClick={() => setEditorSection("content")}>Contenu</button>
@@ -596,12 +650,14 @@ export function AdminQuestionLibraryView({
                 </fieldset>
 
                 <footer className="question-editor-actions">
-                  {editable ? <button className="question-editor-save" type="submit" disabled={questionPending}>{questionPending ? "Enregistrement…" : selectedQuestion ? "Enregistrer le brouillon" : "Créer le brouillon"}</button> : null}
-                  {selectedQuestion ? <div>
-                    <button type="button" onClick={() => void runQuestionAction("DUPLICATE")} disabled={questionPending}>Dupliquer</button>
+                  {editable ? <div>
+                    <button className="question-editor-save" type="submit" disabled={questionPending}>{questionPending ? "Enregistrement…" : selectedQuestion ? "Enregistrer les modifications" : "Créer le brouillon"}</button>
+                    <button type="button" onClick={cancelQuestionEdit} disabled={questionPending}>Annuler</button>
+                  </div> : selectedQuestion ? <div>
+                    {selectedQuestion.status !== "ARCHIVED" ? <button className="question-editor-save" type="button" onClick={startQuestionEdit} disabled={questionPending}>Modifier</button> : null}
                     {selectedQuestion.status === "DRAFT" ? <button type="button" onClick={() => void runQuestionAction("SUBMIT_FOR_REVIEW")} disabled={questionPending}>Soumettre en revue</button> : null}
                     {selectedQuestion.status === "REVIEW" ? <button type="button" className="question-editor-validate" onClick={() => void runQuestionAction("VALIDATE")} disabled={questionPending}>Valider</button> : null}
-                    {selectedQuestion.status !== "ARCHIVED" ? <button type="button" className="question-editor-archive" onClick={() => void runQuestionAction("ARCHIVE")} disabled={questionPending}>Archiver</button> : null}
+                    <button type="button" className="question-editor-delete" onClick={() => void removeQuestion()} disabled={questionPending}>Supprimer</button>
                   </div> : null}
                 </footer>
               </form>

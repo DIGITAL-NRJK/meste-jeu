@@ -1,6 +1,8 @@
 import "server-only";
 
-import { and, desc, eq, ilike, inArray, sql, type SQL } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+
+import { and, desc, eq, ilike, sql, type SQL } from "drizzle-orm";
 
 import {
   auditLogs,
@@ -8,12 +10,15 @@ import {
   questionOptions,
   questions,
   questionSources,
+  quizSessions,
+  sessionQuestions,
 } from "../../../db/schema";
 import { getDb } from "@/lib/db/client";
 import {
   type AdminQuestionDetail,
   type CategoryUpdateOutcome,
   type PersistQuestionDraft,
+  type QuestionDeleteOutcome,
   type QuestionLibraryRepository,
   QuestionPersistenceError,
   type QuestionTransitionOutcome,
@@ -322,6 +327,12 @@ async function updateQuestion(
   input: PersistQuestionDraft,
 ): Promise<QuestionUpdateOutcome> {
   const db = getDb();
+  const mutationId = randomUUID();
+  const isComplete =
+    input.options.length >= 2 &&
+    input.options.length <= 4 &&
+    input.options.filter((option) => option.isCorrect).length === 1 &&
+    input.sources.length >= 1;
 
   try {
     const [updatedRows] = await db.batch([
@@ -334,28 +345,102 @@ async function updateQuestion(
           difficulty: input.difficulty,
           mediaType: input.mediaType,
           mediaUrl: input.mediaUrl,
-          status: "DRAFT",
           updatedAt: input.now,
-          validatedAt: null,
-          validatedBy: null,
+          validatedAt: sql`CASE
+            WHEN ${questions.status} = 'VALIDATED' THEN ${input.now}
+            ELSE ${questions.validatedAt}
+          END`,
+          validatedBy: sql`CASE
+            WHEN ${questions.status} = 'VALIDATED' THEN ${input.actorAdminId}::uuid
+            ELSE ${questions.validatedBy}
+          END`,
         })
         .where(
           and(
             eq(questions.id, questionId),
-            inArray(questions.status, ["DRAFT", "REVIEW"]),
+            sql`${questions.status} <> 'ARCHIVED'`,
+            sql`NOT EXISTS (
+              SELECT 1
+              FROM ${sessionQuestions} AS occurrence
+              INNER JOIN ${quizSessions} AS session
+                ON session.id = occurrence.quiz_session_id
+              WHERE occurrence.question_id = ${questionId}::uuid
+                AND (
+                  occurrence.status <> 'PENDING'
+                  OR session.status <> 'DRAFT'
+                )
+            )`,
+            sql`(
+              ${questions.status} = 'DRAFT'
+              OR ${isComplete}::boolean = true
+            )`,
+            sql`(
+              ${questions.status} <> 'VALIDATED'
+              OR EXISTS (
+                SELECT 1
+                FROM ${categories} AS category
+                WHERE category.id = ${input.categoryId}::uuid
+                  AND category.active = true
+              )
+            )`,
           ),
         )
         .returning({ id: questions.id }),
+      db.execute(sql`
+        INSERT INTO ${auditLogs} (
+          admin_user_id,
+          action,
+          entity_type,
+          entity_id,
+          metadata,
+          created_at
+        )
+        SELECT
+          ${input.actorAdminId}::uuid,
+          'QUESTION_UPDATED',
+          'question',
+          question.id,
+          jsonb_build_object(
+            'mutationId', ${mutationId}::text,
+            'status', question.status::text
+          ),
+          ${input.now}
+        FROM ${questions} AS question
+        WHERE question.id = ${questionId}::uuid
+          AND question.updated_at = ${input.now}
+          AND question.status <> 'ARCHIVED'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM ${sessionQuestions} AS occurrence
+            INNER JOIN ${quizSessions} AS session
+              ON session.id = occurrence.quiz_session_id
+            WHERE occurrence.question_id = question.id
+              AND (
+                occurrence.status <> 'PENDING'
+                OR session.status <> 'DRAFT'
+              )
+          )
+          AND (question.status = 'DRAFT' OR ${isComplete}::boolean = true)
+          AND (
+            question.status <> 'VALIDATED'
+            OR EXISTS (
+              SELECT 1
+              FROM ${categories} AS category
+              WHERE category.id = ${input.categoryId}::uuid
+                AND category.active = true
+            )
+          )
+      `),
       db.execute(sql`
         UPDATE ${questionOptions}
         SET is_correct = false
         WHERE question_id = ${questionId}::uuid
           AND EXISTS (
             SELECT 1
-            FROM ${questions}
-            WHERE id = ${questionId}::uuid
-              AND status = 'DRAFT'
-              AND updated_at = ${input.now}
+            FROM ${auditLogs}
+            WHERE entity_type = 'question'
+              AND entity_id = ${questionId}::uuid
+              AND metadata ->> 'mutationId' = ${mutationId}::text
           )
       `),
       db.execute(sql`
@@ -378,10 +463,10 @@ async function updateQuestion(
           AS item(id text, label text, text text, "isCorrect" boolean, position integer)
         WHERE EXISTS (
           SELECT 1
-          FROM ${questions}
-          WHERE id = ${questionId}::uuid
-            AND status = 'DRAFT'
-            AND updated_at = ${input.now}
+          FROM ${auditLogs}
+          WHERE entity_type = 'question'
+            AND entity_id = ${questionId}::uuid
+            AND metadata ->> 'mutationId' = ${mutationId}::text
         )
         ON CONFLICT (question_id, position) DO UPDATE SET
           label = EXCLUDED.label,
@@ -394,10 +479,10 @@ async function updateQuestion(
           AND position > ${input.options.length}
           AND EXISTS (
             SELECT 1
-            FROM ${questions}
-            WHERE id = ${questionId}::uuid
-              AND status = 'DRAFT'
-              AND updated_at = ${input.now}
+            FROM ${auditLogs}
+            WHERE entity_type = 'question'
+              AND entity_id = ${questionId}::uuid
+              AND metadata ->> 'mutationId' = ${mutationId}::text
           )
       `),
       db.execute(sql`
@@ -405,10 +490,10 @@ async function updateQuestion(
         WHERE question_id = ${questionId}::uuid
           AND EXISTS (
             SELECT 1
-            FROM ${questions}
-            WHERE id = ${questionId}::uuid
-              AND status = 'DRAFT'
-              AND updated_at = ${input.now}
+            FROM ${auditLogs}
+            WHERE entity_type = 'question'
+              AND entity_id = ${questionId}::uuid
+              AND metadata ->> 'mutationId' = ${mutationId}::text
           )
       `),
       db.execute(sql`
@@ -440,41 +525,57 @@ async function updateQuestion(
           )
         WHERE EXISTS (
           SELECT 1
-          FROM ${questions}
-          WHERE id = ${questionId}::uuid
-            AND status = 'DRAFT'
-            AND updated_at = ${input.now}
-        )
-      `),
-      db.execute(sql`
-        INSERT INTO ${auditLogs} (
-          admin_user_id,
-          action,
-          entity_type,
-          entity_id,
-          metadata,
-          created_at
-        )
-        SELECT
-          ${input.actorAdminId}::uuid,
-          'QUESTION_UPDATED',
-          'question',
-          ${questionId}::uuid,
-          '{}'::jsonb,
-          ${input.now}
-        WHERE EXISTS (
-          SELECT 1
-          FROM ${questions}
-          WHERE id = ${questionId}::uuid
-            AND status = 'DRAFT'
-            AND updated_at = ${input.now}
+          FROM ${auditLogs}
+          WHERE entity_type = 'question'
+            AND entity_id = ${questionId}::uuid
+            AND metadata ->> 'mutationId' = ${mutationId}::text
         )
       `),
     ]);
 
     if (updatedRows.length === 0) {
       const existing = await getAdminQuestion(questionId);
-      return existing ? { outcome: "not_editable" } : { outcome: "not_found" };
+      if (!existing) return { outcome: "not_found" };
+      if (existing.status === "ARCHIVED") return { outcome: "not_editable" };
+
+      const [protectedOccurrence] = await db
+        .select({ id: sessionQuestions.id })
+        .from(sessionQuestions)
+        .innerJoin(
+          quizSessions,
+          eq(quizSessions.id, sessionQuestions.quizSessionId),
+        )
+        .where(
+          and(
+            eq(sessionQuestions.questionId, questionId),
+            sql`(
+              ${sessionQuestions.status} <> 'PENDING'
+              OR ${quizSessions.status} <> 'DRAFT'
+            )`,
+          ),
+        )
+        .limit(1);
+
+      if (protectedOccurrence) return { outcome: "protected" };
+      if (existing.status !== "DRAFT" && !isComplete) {
+        return { outcome: "incomplete" };
+      }
+
+      if (existing.status === "VALIDATED") {
+        const [category] = await db
+          .select({ active: categories.active })
+          .from(categories)
+          .where(eq(categories.id, input.categoryId))
+          .limit(1);
+
+        if (!category) {
+          throw new QuestionPersistenceError("category_not_found");
+        }
+
+        if (!category.active) return { outcome: "category_inactive" };
+      }
+
+      return { outcome: "not_editable" };
     }
   } catch (error) {
     return mapPersistenceError(error);
@@ -487,6 +588,176 @@ async function updateQuestion(
   }
 
   return { outcome: "updated", question };
+}
+
+type DeleteQuestionRow = {
+  outcome: "DELETED" | "NOT_FOUND" | "PROTECTED";
+};
+
+async function deleteQuestion(
+  questionId: string,
+  actorAdminId: string,
+  now: Date,
+): Promise<QuestionDeleteOutcome> {
+  const db = getDb();
+  const mutationId = randomUUID();
+  const [result] = await db.batch([
+    db.execute<DeleteQuestionRow>(sql`
+      WITH state AS (
+        SELECT
+          question.id,
+          question.status::text AS status,
+          EXISTS (
+            SELECT 1
+            FROM ${sessionQuestions} AS occurrence
+            INNER JOIN ${quizSessions} AS session
+              ON session.id = occurrence.quiz_session_id
+            WHERE occurrence.question_id = question.id
+              AND (
+                occurrence.status <> 'PENDING'
+                OR session.status <> 'DRAFT'
+              )
+          ) AS is_protected
+        FROM ${questions} AS question
+        WHERE question.id = ${questionId}::uuid
+        FOR UPDATE
+      ), written_audit AS (
+        INSERT INTO ${auditLogs} (
+          admin_user_id,
+          action,
+          entity_type,
+          entity_id,
+          metadata,
+          created_at
+        )
+        SELECT
+          ${actorAdminId}::uuid,
+          'QUESTION_UPDATED',
+          'question',
+          state.id,
+          jsonb_build_object(
+            'operation', 'DELETED',
+            'mutationId', ${mutationId}::text,
+            'previousStatus', state.status,
+            'removedFromSessions', (
+              SELECT count(*)
+              FROM ${sessionQuestions}
+              WHERE question_id = state.id
+            ),
+            'sessionIds', COALESCE(
+              (
+                SELECT jsonb_agg(DISTINCT occurrence.quiz_session_id::text)
+                FROM ${sessionQuestions} AS occurrence
+                WHERE occurrence.question_id = state.id
+              ),
+              '[]'::jsonb
+            )
+          ),
+          ${now}
+        FROM state
+        WHERE state.is_protected = false
+        RETURNING id
+      )
+      SELECT CASE
+        WHEN NOT EXISTS (SELECT 1 FROM state) THEN 'NOT_FOUND'
+        WHEN EXISTS (SELECT 1 FROM written_audit) THEN 'DELETED'
+        ELSE 'PROTECTED'
+      END::text AS outcome
+    `),
+    db.execute(sql`
+      DELETE FROM ${sessionQuestions} AS occurrence
+      WHERE occurrence.question_id = ${questionId}::uuid
+        AND EXISTS (
+          SELECT 1
+          FROM ${auditLogs} AS log
+          WHERE log.entity_type = 'question'
+            AND log.entity_id = ${questionId}::uuid
+            AND log.metadata ->> 'mutationId' = ${mutationId}::text
+        )
+    `),
+    db.execute(sql`
+      DELETE FROM ${questionSources} AS source
+      WHERE source.question_id = ${questionId}::uuid
+        AND EXISTS (
+          SELECT 1
+          FROM ${auditLogs} AS log
+          WHERE log.entity_type = 'question'
+            AND log.entity_id = ${questionId}::uuid
+            AND log.metadata ->> 'mutationId' = ${mutationId}::text
+        )
+    `),
+    db.execute(sql`
+      DELETE FROM ${questionOptions} AS option
+      WHERE option.question_id = ${questionId}::uuid
+        AND EXISTS (
+          SELECT 1
+          FROM ${auditLogs} AS log
+          WHERE log.entity_type = 'question'
+            AND log.entity_id = ${questionId}::uuid
+            AND log.metadata ->> 'mutationId' = ${mutationId}::text
+        )
+    `),
+    db.execute(sql`
+      DELETE FROM ${questions} AS question
+      WHERE question.id = ${questionId}::uuid
+        AND EXISTS (
+          SELECT 1
+          FROM ${auditLogs} AS log
+          WHERE log.entity_type = 'question'
+            AND log.entity_id = ${questionId}::uuid
+            AND log.metadata ->> 'mutationId' = ${mutationId}::text
+        )
+    `),
+    db.execute(sql`
+      UPDATE ${sessionQuestions} AS occurrence
+      SET position = occurrence.position + (
+        SELECT COALESCE(max(current.position), 0) + 1
+        FROM ${sessionQuestions} AS current
+        WHERE current.quiz_session_id = occurrence.quiz_session_id
+      )
+      WHERE occurrence.quiz_session_id IN (
+        SELECT jsonb_array_elements_text(log.metadata -> 'sessionIds')::uuid
+        FROM ${auditLogs} AS log
+        WHERE log.admin_user_id = ${actorAdminId}::uuid
+          AND log.entity_type = 'question'
+          AND log.entity_id = ${questionId}::uuid
+          AND log.action = 'QUESTION_UPDATED'
+          AND log.metadata ->> 'operation' = 'DELETED'
+          AND log.metadata ->> 'mutationId' = ${mutationId}::text
+      )
+    `),
+    db.execute(sql`
+      WITH ranked AS (
+        SELECT
+          occurrence.id,
+          row_number() OVER (
+            PARTITION BY occurrence.quiz_session_id
+            ORDER BY occurrence.position
+          )::integer AS next_position
+        FROM ${sessionQuestions} AS occurrence
+        WHERE occurrence.quiz_session_id IN (
+          SELECT jsonb_array_elements_text(log.metadata -> 'sessionIds')::uuid
+          FROM ${auditLogs} AS log
+          WHERE log.entity_type = 'question'
+            AND log.entity_id = ${questionId}::uuid
+            AND log.metadata ->> 'mutationId' = ${mutationId}::text
+        )
+      )
+      UPDATE ${sessionQuestions} AS occurrence
+      SET position = ranked.next_position
+      FROM ranked
+      WHERE occurrence.id = ranked.id
+    `),
+  ]);
+
+  switch (result.rows[0]?.outcome) {
+    case "DELETED":
+      return "deleted";
+    case "PROTECTED":
+      return "protected";
+    default:
+      return "not_found";
+  }
 }
 
 function listQuestions(filters: {
@@ -723,6 +994,7 @@ export const postgresQuestionLibraryRepository: QuestionLibraryRepository = {
   updateCategory,
   createQuestion,
   updateQuestion,
+  deleteQuestion,
   getAdminQuestion,
   listQuestions,
   submitForReview,

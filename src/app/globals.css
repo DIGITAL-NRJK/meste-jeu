@@ -2420,7 +2420,7 @@ input:focus-visible {
   color: #132019;
 }
 
-.question-editor-actions .question-editor-archive {
+.question-editor-actions .question-editor-delete {
   border-color: rgb(238 131 121 / 34%);
   color: #ffaaa2;
 }

@@ -88,7 +88,7 @@ export const questionListFiltersSchema = z.object({
 });
 
 export const questionActionInputSchema = z.object({
-  action: z.enum(["DUPLICATE", "SUBMIT_FOR_REVIEW", "VALIDATE", "ARCHIVE"]),
+  action: z.enum(["SUBMIT_FOR_REVIEW", "VALIDATE"]),
 });
 
 export type CategoryInput = z.infer<typeof categoryInputSchema>;

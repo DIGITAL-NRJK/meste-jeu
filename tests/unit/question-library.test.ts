@@ -4,6 +4,7 @@ import {
   CategoryConflictError,
   createCategory,
   createQuestionDraft,
+  deleteQuestion,
   duplicateQuestion,
   getQuestion,
   normalizeCategorySlug,
@@ -16,9 +17,10 @@ import {
   QuestionNotFoundError,
   QuestionNotReadyError,
   QuestionPersistenceError,
+  QuestionProtectedError,
   submitQuestionForReview,
   updateCategory,
-  updateQuestionDraft,
+  updateQuestion,
   validateQuestion,
 } from "../../src/server/services/question-library";
 
@@ -97,6 +99,7 @@ function createRepository(
       outcome: "updated" as const,
       question: detailFromInput(input),
     })),
+    deleteQuestion: vi.fn(async () => "deleted" as const),
     getAdminQuestion: vi.fn(async () => null),
     listQuestions: vi.fn(async () => []),
     submitForReview: vi.fn(async () => "transitioned" as const),
@@ -173,7 +176,30 @@ describe("question library service", () => {
     );
   });
 
-  it("refuse de modifier une question validée ou archivée", async () => {
+  it("modifie une question validée en conservant son identifiant et son statut", async () => {
+    const repository = createRepository({
+      updateQuestion: vi.fn(async (_id, input) => ({
+        outcome: "updated" as const,
+        question: detailFromInput(input, "VALIDATED"),
+      })),
+    });
+
+    const updated = await updateQuestion(
+      questionId,
+      { ...draftInput(), questionText: "Question corrigée sur Brazzaville ?" },
+      actorAdminId,
+      { repository },
+    );
+
+    expect(updated).toMatchObject({
+      id: questionId,
+      status: "VALIDATED",
+      questionText: "Question corrigée sur Brazzaville ?",
+    });
+    expect(repository.createQuestion).not.toHaveBeenCalled();
+  });
+
+  it("refuse de modifier une question archivée", async () => {
     const repository = createRepository({
       updateQuestion: vi.fn(async () => ({
         outcome: "not_editable" as const,
@@ -181,7 +207,7 @@ describe("question library service", () => {
     });
 
     await expect(
-      updateQuestionDraft(questionId, draftInput(), actorAdminId, {
+      updateQuestion(questionId, draftInput(), actorAdminId, {
         repository,
       }),
     ).rejects.toBeInstanceOf(QuestionNotEditableError);
@@ -195,10 +221,40 @@ describe("question library service", () => {
     });
 
     await expect(
-      updateQuestionDraft(questionId, draftInput(), actorAdminId, {
+      updateQuestion(questionId, draftInput(), actorAdminId, {
         repository,
       }),
     ).rejects.toBeInstanceOf(QuestionCategoryNotFoundError);
+  });
+
+  it("protège la modification et la suppression d’une question déjà préparée", async () => {
+    const repository = createRepository({
+      updateQuestion: vi.fn(async () => ({ outcome: "protected" as const })),
+      deleteQuestion: vi.fn(async () => "protected" as const),
+    });
+
+    await expect(
+      updateQuestion(questionId, draftInput(), actorAdminId, { repository }),
+    ).rejects.toBeInstanceOf(QuestionProtectedError);
+    await expect(
+      deleteQuestion(questionId, actorAdminId, { repository }),
+    ).rejects.toBeInstanceOf(QuestionProtectedError);
+  });
+
+  it("supprime une question sans en créer une nouvelle", async () => {
+    const repository = createRepository();
+
+    await deleteQuestion(questionId, actorAdminId, {
+      repository,
+      now: () => now,
+    });
+
+    expect(repository.deleteQuestion).toHaveBeenCalledWith(
+      questionId,
+      actorAdminId,
+      now,
+    );
+    expect(repository.createQuestion).not.toHaveBeenCalled();
   });
 
   it("signale une question absente lors de la consultation", async () => {

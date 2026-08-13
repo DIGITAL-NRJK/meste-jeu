@@ -10,6 +10,7 @@ const questionRepository = vi.hoisted(() => ({
   updateCategory: vi.fn(),
   createQuestion: vi.fn(),
   updateQuestion: vi.fn(),
+  deleteQuestion: vi.fn(),
   getAdminQuestion: vi.fn(),
   listQuestions: vi.fn(),
   submitForReview: vi.fn(),
@@ -35,7 +36,11 @@ import {
   GET as listQuestions,
   POST as createQuestion,
 } from "../../src/app/api/admin/questions/route";
-import { GET as getQuestion } from "../../src/app/api/admin/questions/[id]/route";
+import {
+  DELETE as deleteQuestion,
+  GET as getQuestion,
+  PUT as updateQuestion,
+} from "../../src/app/api/admin/questions/[id]/route";
 import { POST as runQuestionAction } from "../../src/app/api/admin/questions/[id]/actions/route";
 
 const adminId = "00000000-0000-4000-8000-000000000001";
@@ -123,6 +128,17 @@ describe("admin question library API", () => {
       options: input.options,
       sources: input.sources,
     }));
+    questionRepository.updateQuestion.mockImplementation(async (_id, input) => ({
+      outcome: "updated",
+      question: {
+        ...question,
+        status: "VALIDATED",
+        questionText: input.questionText,
+        options: input.options,
+        sources: input.sources,
+      },
+    }));
+    questionRepository.deleteQuestion.mockResolvedValue("deleted");
     questionRepository.updateCategory.mockImplementation(async (_id, input) => ({
       outcome: "updated",
       category: { id: categoryId, ...input },
@@ -197,6 +213,54 @@ describe("admin question library API", () => {
       expect.objectContaining({ text: "1960", isCorrect: true }),
     );
     expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("modifie une question existante sans en créer une copie", async () => {
+    const response = await updateQuestion(
+      request(`http://localhost/api/admin/questions/${questionId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          categoryId,
+          questionText: "À quelle date le Congo a-t-il accédé à l’indépendance ?",
+          explanation: question.explanation,
+          difficulty: 1,
+          options: question.options.map(({ text, isCorrect }) => ({ text, isCorrect })),
+          sources: question.sources.map(({ publisher, title, url, verifiedAt }) => ({
+            publisher,
+            title,
+            url,
+            verifiedAt,
+          })),
+        }),
+      }),
+      { params: Promise.resolve({ id: questionId }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(questionRepository.updateQuestion).toHaveBeenCalledWith(
+      questionId,
+      expect.objectContaining({ actorAdminId: adminId }),
+    );
+    expect(questionRepository.createQuestion).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({
+      question: { id: questionId, status: "VALIDATED" },
+    });
+  });
+
+  it("supprime une question via une commande authentifiée", async () => {
+    const response = await deleteQuestion(
+      request(`http://localhost/api/admin/questions/${questionId}`, {
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ id: questionId }) },
+    );
+
+    expect(response.status).toBe(204);
+    expect(questionRepository.deleteQuestion).toHaveBeenCalledWith(
+      questionId,
+      adminId,
+      expect.any(Date),
+    );
   });
 
   it("valide une question via une transition métier explicite", async () => {

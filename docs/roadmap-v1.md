@@ -16,6 +16,7 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 10. TASK 10 — Contrôle live
 11. TASK 11 — Exports et audit logs
 12. TASK 12 — Tests, QA et production
+13. TASK 13 — Administration des questions et catégories
 
 ## État
 
@@ -31,5 +32,6 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 - TASK 10 : terminée le 13 août 2026
 - TASK 11 : terminée le 13 août 2026
 - TASK 12 : QA automatisée terminée le 13 août 2026 ; recette de production bloquée par les écarts listés dans `docs/production-readiness.md`
+- TASK 13 : administration des questions et catégories terminée le 13 août 2026 ; validation PostgreSQL attendue sur la branche Neon éphémère de la PR
 
 Le détail fonctionnel et les critères de recette restent définis dans `docs/cahier-des-charges-v1.md`.

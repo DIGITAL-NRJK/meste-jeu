@@ -17,6 +17,7 @@ import {
   QuestionNotReadyError,
   QuestionPersistenceError,
   submitQuestionForReview,
+  updateCategory,
   updateQuestionDraft,
   validateQuestion,
 } from "../../src/server/services/question-library";
@@ -87,6 +88,10 @@ function createRepository(
       ...input,
     })),
     listCategories: vi.fn(async () => [category]),
+    updateCategory: vi.fn(async (_id, input) => ({
+      outcome: "updated" as const,
+      category: { id: categoryId, ...input },
+    })),
     createQuestion: vi.fn(async (input) => detailFromInput(input)),
     updateQuestion: vi.fn(async (_id, input) => ({
       outcome: "updated" as const,
@@ -119,6 +124,25 @@ describe("question library service", () => {
     await expect(
       createCategory({ name: "Histoire" }, repository),
     ).rejects.toBeInstanceOf(CategoryConflictError);
+  });
+
+  it("modifie le libellé et l’état actif d’une catégorie", async () => {
+    const repository = createRepository();
+
+    const updated = await updateCategory(
+      categoryId,
+      { name: "Culture congolaise", description: "Arts et patrimoine", active: false },
+      repository,
+    );
+
+    expect(updated).toMatchObject({
+      slug: "culture-congolaise",
+      active: false,
+    });
+    expect(repository.updateCategory).toHaveBeenCalledWith(
+      categoryId,
+      expect.objectContaining({ slug: "culture-congolaise", active: false }),
+    );
   });
 
   it("attribue les labels A à D et conserve la bonne réponse côté serveur", async () => {

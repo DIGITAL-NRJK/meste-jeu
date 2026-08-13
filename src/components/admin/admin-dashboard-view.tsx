@@ -353,7 +353,7 @@ export function AdminDashboardView({
               <a href="#participants">Participants</a>
               <a href="#question">Question actuelle</a>
               <a href="#classement">Classement</a>
-              <a href="#bibliotheque">Questions</a>
+              <a href="/admin/questions">Questions</a>
               <a href="#exports">Exports</a>
               <a href="#audit">Audit</a>
             </nav>
@@ -449,6 +449,9 @@ export function AdminDashboardView({
                   <div><dt>En revue</dt><dd>{dashboard.questionLibrary.inReview}</dd></div>
                   <div><dt>Validées</dt><dd>{dashboard.questionLibrary.validated}</dd></div>
                 </dl>
+                <a className="admin-library-link" href="/admin/questions">
+                  Gérer les questions et catégories →
+                </a>
               </section>
 
               <section className="admin-panel admin-exports" id="exports">

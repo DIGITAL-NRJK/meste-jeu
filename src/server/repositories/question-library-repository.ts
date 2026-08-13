@@ -12,6 +12,7 @@ import {
 import { getDb } from "@/lib/db/client";
 import {
   type AdminQuestionDetail,
+  type CategoryUpdateOutcome,
   type PersistQuestionDraft,
   type QuestionLibraryRepository,
   QuestionPersistenceError,
@@ -111,6 +112,30 @@ function listCategories(activeOnly: boolean) {
   return query
     .where(activeOnly ? eq(categories.active, true) : undefined)
     .orderBy(categories.name);
+}
+
+async function updateCategory(
+  categoryId: string,
+  input: {
+    name: string;
+    slug: string;
+    description: string | null;
+    active: boolean;
+  },
+): Promise<CategoryUpdateOutcome> {
+  try {
+    const [category] = await getDb()
+      .update(categories)
+      .set(input)
+      .where(eq(categories.id, categoryId))
+      .returning();
+
+    return category
+      ? { outcome: "updated", category }
+      : { outcome: "not_found" };
+  } catch (error) {
+    return mapPersistenceError(error);
+  }
 }
 
 function questionOptionInsert(input: PersistQuestionDraft) {
@@ -695,6 +720,7 @@ async function archiveQuestion(
 export const postgresQuestionLibraryRepository: QuestionLibraryRepository = {
   createCategory,
   listCategories,
+  updateCategory,
   createQuestion,
   updateQuestion,
   getAdminQuestion,

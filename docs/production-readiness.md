@@ -12,7 +12,7 @@ La fiabilité du moteur, du scoring, du temps serveur, de l’inscription, du cl
 
 ## Bloquants fonctionnels issus du cahier des charges
 
-- [ ] Raccorder à `/admin` la création, l’édition, la duplication, la validation et l’archivage des questions et catégories.
+- [x] Raccorder à `/admin` la création, l’édition, la duplication, la validation et l’archivage des questions et catégories.
 - [ ] Raccorder à `/admin` la création des sessions et la configuration de leur ordre de questions.
 - [ ] Ajouter la recherche, la consultation et la désactivation d’un joueur.
 - [ ] Ajouter les ajustements de score `ADMIN_ADJUSTMENT` avec motif et audit.
@@ -20,6 +20,8 @@ La fiabilité du moteur, du scoring, du temps serveur, de l’inscription, du cl
 - [ ] Produire puis tester un QR code vers l’URL joueur définitive.
 
 Le schéma et plusieurs services métier existent déjà pour certaines de ces capacités, mais une personne MESTE ne peut pas encore les utiliser intégralement sans intervention technique. Cela diverge du critère du cahier des charges selon lequel l’administration doit piloter tout le quiz.
+
+TASK 13 raccorde la bibliothèque à `/admin/questions` avec recherche, filtres, cycle éditorial, sources, QCM texte/image et activation des catégories. Sa validation PostgreSQL reste réservée au workflow Neon de la PR ; aucune donnée de production ne doit être utilisée pour cette vérification.
 
 ## Contrôles automatisés avant chaque fusion
 

@@ -12,6 +12,10 @@ export const categoryInputSchema = z.object({
   description: optionalTrimmedText,
 });
 
+export const categoryUpdateInputSchema = categoryInputSchema.extend({
+  active: z.boolean(),
+});
+
 export const questionOptionInputSchema = z.object({
   text: z.string().trim().min(1).max(500),
   isCorrect: z.boolean().default(false),
@@ -80,9 +84,15 @@ export const questionListFiltersSchema = z.object({
     .enum(["DRAFT", "REVIEW", "VALIDATED", "ARCHIVED"])
     .optional(),
   search: z.string().trim().max(100).optional(),
-  limit: z.number().int().min(1).max(100).default(50),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export const questionActionInputSchema = z.object({
+  action: z.enum(["DUPLICATE", "SUBMIT_FOR_REVIEW", "VALIDATE", "ARCHIVE"]),
 });
 
 export type CategoryInput = z.infer<typeof categoryInputSchema>;
+export type CategoryUpdateInput = z.infer<typeof categoryUpdateInputSchema>;
 export type QuestionDraftInput = z.infer<typeof questionDraftInputSchema>;
 export type QuestionListFilters = z.infer<typeof questionListFiltersSchema>;
+export type QuestionActionInput = z.infer<typeof questionActionInputSchema>;

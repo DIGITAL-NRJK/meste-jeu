@@ -541,6 +541,16 @@ export function AdminProgrammingView({
                 Clôturer
               </button>
             ) : null}
+            {event && (event.status === "READY" || event.status === "LIVE") ? (
+              <Link
+                className="programming-player-action"
+                href={`/play/${encodeURIComponent(event.slug)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Ouvrir l’espace joueur
+              </Link>
+            ) : null}
             <button type="button" className="programming-secondary-action" onClick={openNewEventForm}>
               Nouvel événement
             </button>

@@ -61,6 +61,7 @@ describe("AdminDashboardView", () => {
 
     expect(html).toContain("Journal administrateur");
     expect(html).toContain('href="/admin/accounts"');
+    expect(html).toContain('href="/play/independance-congo-66"');
     expect(html).toContain('aria-label="Journal des dernières actions administratives"');
     expect(html).toContain("Session créée");
     expect(html).toContain('data-testid="audit-count">1</span>');

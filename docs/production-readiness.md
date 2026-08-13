@@ -29,7 +29,11 @@ TASK 15 ajoute `/admin/players` pour rechercher un joueur par pseudo ou code pub
 
 TASK 16 complète la fiche joueur avec un ajustement de score exceptionnel rattaché à une session. Un entier positif ou négatif et un motif sont obligatoires, une confirmation précède l’écriture, puis le serveur ajoute atomiquement un événement `ADMIN_ADJUSTMENT` et un audit `SCORE_ADJUSTED`. Le score existant n’est jamais écrasé. Elle est fusionnée et déployée depuis le 13 août 2026.
 
-TASK 17 ajoute `/admin/rewards` pour créer et modifier les lots d’un événement, définir une position ou une condition d’attribution, les activer ou désactiver, les attribuer à un joueur du même événement et confirmer leur remise. L’attribution est protégée contre les doublons et produit atomiquement un audit `REWARD_AWARDED` ; la remise conserve l’heure et l’administrateur responsables. La validation PostgreSQL doit être effectuée sur la branche Neon éphémère de la PR avant fusion.
+TASK 17 ajoute `/admin/rewards` pour créer et modifier les lots d’un événement, définir une position ou une condition d’attribution, les activer ou désactiver, les attribuer à un joueur du même événement et confirmer leur remise. L’attribution est protégée contre les doublons et produit atomiquement un audit `REWARD_AWARDED` ; la remise conserve l’heure et l’administrateur responsables. Elle est fusionnée et déployée depuis le 13 août 2026.
+
+TASK 18 borne les listes opérationnelles longues dans des zones de défilement internes, compacte la fiche question en sections, sécurise la troncature des noms d’événements et assouplit les grilles aux largeurs tablette et mobile. Elle ne modifie ni le moteur de jeu ni les données.
+
+TASK 19 devra formaliser le mode de recette demandé par l’opérateur. Tant qu’un événement n’est pas `FINISHED`, un retour contrôlé vers `DRAFT` doit rester possible. La suppression d’un joueur sera réservée au contexte de test ; pendant un vrai `LIVE`, seule la désactivation restera autorisée. Les effets sur les réponses, scores, récompenses et audits devront être définis avant migration.
 
 Le seed éditorial du 66e anniversaire prépare 5 catégories, 50 questions sourcées et 6 sessions en brouillon dans le fuseau `Africa/Accra`. Sa procédure sécurisée est documentée dans `docs/seed-independence-66.md`. Il a été validé sur la branche Neon éphémère puis appliqué sur Neon production après création d’un point de restauration et confirmation explicite de l’opérateur.
 
@@ -71,6 +75,9 @@ Tester au minimum sur un iPhone et un Android réels, dont un écran proche de 3
 - [ ] télécharger et ouvrir les trois CSV dans Excel et Google Sheets ;
 - [ ] vérifier la navigation clavier de la connexion admin et des réponses joueur ;
 - [ ] vérifier l’absence de débordement horizontal à 360 px ;
+- [ ] vérifier les écrans `/admin`, `/admin/questions`, `/admin/sessions`, `/admin/players` et `/admin/rewards` à 360, 768, 1024 et 1366 px, avec le nom long de l’événement seedé ;
+- [ ] vérifier que le journal, les listes joueurs/lots et les conducteurs longs défilent dans leur panneau sans allonger démesurément la page ;
+- [ ] vérifier au clavier les onglets Contenu, Réponses et Sources d’une fiche question ;
 - [ ] vérifier l’heure et le fuseau configurés pour l’événement ;
 - [ ] scanner le QR code imprimé à plusieurs distances et luminosités.
 

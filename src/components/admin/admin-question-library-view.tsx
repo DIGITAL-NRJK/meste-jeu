@@ -84,6 +84,8 @@ type Filters = {
   categoryId: string;
 };
 
+type QuestionEditorSection = "content" | "answers" | "sources";
+
 type ApiErrorPayload = { error?: { message?: string } };
 
 const statusLabels = {
@@ -203,6 +205,8 @@ export function AdminQuestionLibraryView({
     blankQuestion(firstActiveCategory),
   );
   const [creatingQuestion, setCreatingQuestion] = useState(false);
+  const [editorSection, setEditorSection] =
+    useState<QuestionEditorSection>("content");
   const [questionPending, setQuestionPending] = useState(false);
   const [listPending, setListPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -270,6 +274,7 @@ export function AdminQuestionLibraryView({
       setSelectedQuestion(payload.question);
       setQuestionForm(questionToForm(payload.question));
       setCreatingQuestion(false);
+      setEditorSection("content");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Question indisponible.");
     } finally {
@@ -281,6 +286,7 @@ export function AdminQuestionLibraryView({
     setSelectedQuestion(null);
     setQuestionForm(blankQuestion(categories.find((category) => category.active)?.id ?? ""));
     setCreatingQuestion(true);
+    setEditorSection("content");
     setMessage(null);
   }
 
@@ -533,7 +539,13 @@ export function AdminQuestionLibraryView({
 
                 {!editable ? <p className="question-editor-readonly">Cette fiche est en lecture seule. Dupliquez-la pour créer une nouvelle version modifiable.</p> : selectedQuestion?.status === "REVIEW" ? <p className="question-editor-readonly">Toute modification replacera cette question au statut Brouillon.</p> : null}
 
-                <fieldset disabled={!editable || questionPending}>
+                <div className="question-editor-tabs" role="tablist" aria-label="Sections de la fiche question">
+                  <button type="button" role="tab" aria-selected={editorSection === "content"} aria-controls="question-editor-content" id="question-editor-content-tab" onClick={() => setEditorSection("content")}>Contenu</button>
+                  <button type="button" role="tab" aria-selected={editorSection === "answers"} aria-controls="question-editor-answers" id="question-editor-answers-tab" onClick={() => setEditorSection("answers")}>Réponses <span>{questionForm.options.length}</span></button>
+                  <button type="button" role="tab" aria-selected={editorSection === "sources"} aria-controls="question-editor-sources" id="question-editor-sources-tab" onClick={() => setEditorSection("sources")}>Sources <span>{questionForm.sources.length}</span></button>
+                </div>
+
+                <fieldset id="question-editor-content" role="tabpanel" aria-labelledby="question-editor-content-tab" hidden={editorSection !== "content"} disabled={!editable || questionPending}>
                   <legend>Contenu</legend>
                   <label className="question-editor-wide"><span>Question</span><textarea rows={3} required minLength={5} maxLength={500} value={questionForm.questionText} onChange={(event) => setQuestionForm({ ...questionForm, questionText: event.target.value })} /></label>
                   <label><span>Catégorie</span><select required value={questionForm.categoryId} onChange={(event) => setQuestionForm({ ...questionForm, categoryId: event.target.value })}>
@@ -550,7 +562,7 @@ export function AdminQuestionLibraryView({
                   <label className="question-editor-wide"><span>Explication culturelle</span><textarea rows={4} required maxLength={2000} value={questionForm.explanation} onChange={(event) => setQuestionForm({ ...questionForm, explanation: event.target.value })} /></label>
                 </fieldset>
 
-                <fieldset disabled={!editable || questionPending}>
+                <fieldset id="question-editor-answers" role="tabpanel" aria-labelledby="question-editor-answers-tab" hidden={editorSection !== "answers"} disabled={!editable || questionPending}>
                   <legend>Réponses</legend>
                   <p className="question-editor-guidance">Deux à quatre propositions. La bonne réponse reste strictement réservée à la régie avant révélation.</p>
                   <div className="question-option-list">
@@ -565,7 +577,7 @@ export function AdminQuestionLibraryView({
                   <button type="button" className="question-editor-add" disabled={questionForm.options.length >= 4} onClick={() => setQuestionForm({ ...questionForm, options: [...questionForm.options, { key: nextClientKey("option"), text: "", isCorrect: false }] })}>+ Ajouter une proposition</button>
                 </fieldset>
 
-                <fieldset disabled={!editable || questionPending}>
+                <fieldset id="question-editor-sources" role="tabpanel" aria-labelledby="question-editor-sources-tab" hidden={editorSection !== "sources"} disabled={!editable || questionPending}>
                   <legend>Sources</legend>
                   <p className="question-editor-guidance">Une source vérifiable est obligatoire avant la mise en revue.</p>
                   <div className="question-source-list">

@@ -1242,9 +1242,18 @@ input:focus-visible {
   font-weight: 500;
 }
 
-.admin-empty-state > p:last-child {
+.admin-empty-state > p:last-of-type {
   margin: 0;
   color: var(--text-secondary);
+}
+
+.admin-empty-state > a {
+  display: inline-flex;
+  margin-top: 1rem;
+  color: var(--brand-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .admin-live-line {
@@ -2477,5 +2486,629 @@ input:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .question-library-list > button {
     transition: none;
+  }
+}
+
+/* Admin event and session programming */
+.programming-page {
+  min-height: 100dvh;
+  background:
+    linear-gradient(90deg, rgb(242 193 78 / 3%) 1px, transparent 1px) 0 0 / 4rem 4rem,
+    radial-gradient(circle at 82% 4%, rgb(242 193 78 / 10%), transparent 30rem),
+    var(--background);
+}
+
+.programming-shell {
+  width: min(100%, 94rem);
+  margin: 0 auto;
+  padding: 1.25rem 1rem 4rem;
+}
+
+.programming-hero {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.35rem 0 1.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.programming-hero h1 {
+  margin: 0.45rem 0 0.8rem;
+  font-family: var(--display-font);
+  font-size: clamp(3rem, 13vw, 6.5rem);
+  font-weight: 500;
+  letter-spacing: -0.07em;
+  line-height: 0.86;
+}
+
+.programming-hero > div > p:last-child {
+  max-width: 42rem;
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.programming-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-self: end;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  list-style: none;
+  overflow: hidden;
+}
+
+.programming-steps li {
+  display: grid;
+  min-height: 4.3rem;
+  align-content: center;
+  gap: 0.2rem;
+  padding: 0.8rem;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: rgb(248 242 229 / 42%);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.programming-steps li:nth-child(2n) {
+  border-right: 0;
+}
+
+.programming-steps li:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.programming-steps span {
+  color: inherit;
+  font-family: var(--display-font);
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.programming-steps .is-current {
+  background: rgb(242 193 78 / 7%);
+  color: var(--brand-accent);
+}
+
+.programming-steps .is-done {
+  color: #9ce0b6;
+}
+
+.programming-event-bar,
+.programming-event-summary,
+.programming-creation-form,
+.programming-session-index,
+.programming-editor {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: rgb(16 39 31 / 86%);
+}
+
+.programming-event-bar {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.programming-event-bar label,
+.programming-creation-form label,
+.programming-question-bank > label,
+.programming-lineup li label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.programming-event-bar label > span,
+.programming-creation-form label > span,
+.programming-question-bank > label > span,
+.programming-lineup li label > span {
+  color: var(--text-secondary);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.programming-event-bar select,
+.programming-creation-form input,
+.programming-creation-form select,
+.programming-creation-form textarea,
+.programming-question-bank input,
+.programming-lineup li input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: rgb(7 26 20 / 78%);
+  color: var(--text-primary);
+}
+
+.programming-event-bar select,
+.programming-creation-form input,
+.programming-creation-form select,
+.programming-question-bank input,
+.programming-lineup li input {
+  padding: 0 0.75rem;
+}
+
+.programming-creation-form textarea {
+  padding: 0.7rem 0.75rem;
+  resize: vertical;
+}
+
+.programming-event-bar select:focus-visible,
+.programming-creation-form input:focus-visible,
+.programming-creation-form select:focus-visible,
+.programming-creation-form textarea:focus-visible,
+.programming-question-bank input:focus-visible,
+.programming-lineup li input:focus-visible,
+.programming-page button:focus-visible,
+.programming-page a:focus-visible {
+  outline: 3px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+.programming-event-actions,
+.programming-lineup footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.programming-event-actions button,
+.programming-creation-form > button,
+.programming-section-heading > button,
+.programming-empty button,
+.programming-lineup footer button {
+  min-height: 2.6rem;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--brand-accent);
+  color: #132019;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.programming-page button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.programming-event-actions .programming-secondary-action,
+.programming-lineup footer .programming-secondary-action {
+  border: 1px solid rgb(242 193 78 / 28%);
+  background: transparent;
+  color: var(--brand-accent);
+}
+
+.programming-creation-form {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.programming-creation-form header {
+  grid-column: 1 / -1;
+}
+
+.programming-creation-form h2,
+.programming-section-heading h2,
+.programming-editor-heading h2,
+.programming-question-bank h3,
+.programming-lineup h3 {
+  margin: 0.3rem 0 0;
+  font-family: var(--display-font);
+  font-weight: 500;
+}
+
+.programming-creation-form > button {
+  align-self: end;
+}
+
+.programming-checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 0.6rem !important;
+}
+
+.programming-checkbox input {
+  width: 1.15rem;
+  min-height: 1.15rem;
+  accent-color: var(--brand-accent);
+}
+
+.programming-event-summary {
+  display: grid;
+  gap: 0;
+  margin-top: 1rem;
+  overflow: hidden;
+}
+
+.programming-event-summary div {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.programming-event-summary div:last-child {
+  border-bottom: 0;
+}
+
+.programming-event-summary small,
+.programming-editor-heading small,
+.programming-session-list small,
+.programming-question-list small,
+.programming-lineup li small,
+.programming-locked-lineup small {
+  color: var(--text-secondary);
+  font-size: 0.67rem;
+}
+
+.programming-event-summary strong {
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.programming-workspace {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.programming-session-index,
+.programming-editor {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.programming-section-heading,
+.programming-editor-heading,
+.programming-question-bank header,
+.programming-lineup > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.programming-session-list {
+  display: grid;
+}
+
+.programming-session-list > button {
+  display: grid;
+  width: 100%;
+  gap: 0.55rem;
+  padding: 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.programming-session-list > button:hover,
+.programming-session-list > button.is-selected {
+  background: rgb(242 193 78 / 6%);
+  box-shadow: inset 3px 0 var(--brand-accent);
+}
+
+.programming-session-list > button > strong {
+  font-family: var(--display-font);
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.programming-empty {
+  display: grid;
+  justify-items: start;
+  gap: 0.65rem;
+  padding: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.programming-empty p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.programming-empty a {
+  color: var(--brand-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.programming-editor-empty {
+  min-height: 24rem;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.programming-editor-empty > span {
+  color: var(--brand-accent);
+  font-family: var(--display-font);
+  font-size: 3rem;
+}
+
+.programming-editor-empty h2 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+.programming-lineup-layout {
+  display: grid;
+}
+
+.programming-question-bank {
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.programming-question-bank > label {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.programming-question-list {
+  display: grid;
+  max-height: 30rem;
+  overflow-y: auto;
+}
+
+.programming-question-list > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.35rem 0.7rem;
+  padding: 0.9rem 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.programming-question-list > button:hover {
+  background: rgb(242 193 78 / 6%);
+}
+
+.programming-question-list > button > span {
+  grid-row: 1 / span 2;
+  color: var(--brand-accent);
+  font-size: 1.4rem;
+}
+
+.programming-question-list > button > strong {
+  font-family: var(--display-font);
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.programming-lineup {
+  min-width: 0;
+}
+
+.programming-lineup > header > strong {
+  color: var(--brand-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.programming-lineup ol,
+.programming-locked-lineup ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.programming-lineup li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.programming-lineup li > div:nth-child(2) {
+  display: grid;
+  align-content: center;
+  gap: 0.25rem;
+}
+
+.programming-lineup li > div:nth-child(2) > strong {
+  font-family: var(--display-font);
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.programming-position {
+  color: var(--brand-accent);
+  font-family: var(--display-font);
+  font-size: 1.2rem;
+}
+
+.programming-lineup li label {
+  grid-column: 2;
+  width: 6rem;
+}
+
+.programming-order-actions {
+  display: flex;
+  grid-column: 2;
+  gap: 0.35rem;
+}
+
+.programming-order-actions button {
+  width: 2.35rem;
+  min-height: 2.35rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.programming-order-actions button:last-child {
+  color: #ffaaa2;
+}
+
+.programming-lineup footer {
+  justify-content: flex-end;
+  padding: 1rem;
+}
+
+.programming-unsaved {
+  margin: -0.35rem 1rem 1rem;
+  color: var(--brand-accent);
+  font-size: 0.68rem;
+  text-align: right;
+}
+
+.programming-locked-lineup {
+  padding: 1rem;
+}
+
+.programming-locked-lineup > p {
+  margin: 0 0 1rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.programming-locked-lineup li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.programming-locked-lineup li > span {
+  color: var(--brand-accent);
+  font-family: var(--display-font);
+}
+
+.programming-locked-lineup li > strong {
+  font-family: var(--display-font);
+  font-weight: 500;
+}
+
+.programming-locked-lineup > a {
+  display: inline-flex;
+  margin-top: 1rem;
+  color: var(--brand-accent);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (min-width: 44rem) {
+  .programming-shell {
+    padding-right: 1.5rem;
+    padding-left: 1.5rem;
+  }
+
+  .programming-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(26rem, 0.85fr);
+    align-items: end;
+    padding-top: 2rem;
+  }
+
+  .programming-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .programming-steps li,
+  .programming-steps li:nth-child(2n) {
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+
+  .programming-steps li:last-child {
+    border-right: 0;
+  }
+
+  .programming-event-bar {
+    grid-template-columns: minmax(16rem, 1fr) auto;
+    align-items: end;
+  }
+
+  .programming-creation-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .programming-creation-form .programming-wide {
+    grid-column: 1 / -1;
+  }
+
+  .programming-event-summary {
+    grid-template-columns: 1.4fr 0.7fr 1fr;
+  }
+
+  .programming-event-summary div {
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+
+  .programming-event-summary div:last-child {
+    border-right: 0;
+  }
+
+  .programming-lineup li {
+    grid-template-columns: auto minmax(0, 1fr) 6rem auto;
+    align-items: center;
+  }
+
+  .programming-lineup li label,
+  .programming-order-actions {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 72rem) {
+  .programming-workspace {
+    grid-template-columns: minmax(18rem, 0.58fr) minmax(42rem, 1.6fr);
+    align-items: start;
+  }
+
+  .programming-session-index {
+    position: sticky;
+    top: 1rem;
+  }
+
+  .programming-lineup-layout {
+    grid-template-columns: minmax(18rem, 0.72fr) minmax(26rem, 1.28fr);
+  }
+
+  .programming-question-bank {
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .programming-session-list > button,
+  .programming-question-list > button {
+    scroll-behavior: auto;
   }
 }

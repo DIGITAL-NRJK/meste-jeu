@@ -21,11 +21,14 @@ import {
 } from "../../db/schema";
 import { getDb } from "../../src/lib/db/client";
 import { postgresAdminPlayerManagementRepository } from "../../src/server/repositories/admin-player-management-repository";
+import { postgresLeaderboardRepository } from "../../src/server/repositories/leaderboard-repository";
 import {
+  adjustAdminPlayerScore,
   disableAdminPlayer,
   getAdminPlayer,
   getAdminPlayerManagement,
 } from "../../src/server/services/admin-player-management";
+import { getLeaderboard } from "../../src/server/services/leaderboard";
 
 if (
   process.env.DATABASE_INTEGRATION_TARGET !== "neon-preview" ||
@@ -49,6 +52,8 @@ const occurrenceIds = [randomUUID(), randomUUID()];
 const optionIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
 const answerIds = [randomUUID(), randomUUID()];
 const scoreEventId = randomUUID();
+const adjustmentId = randomUUID();
+const rejectedAdjustmentId = randomUUID();
 const eventSlug = `integration-player-admin-${randomUUID()}`;
 const publicCode = `PC-${randomUUID()}`;
 
@@ -202,8 +207,8 @@ describe("admin player management with PostgreSQL", () => {
   });
 
   afterAll(async () => {
-    await db.delete(auditLogs).where(eq(auditLogs.entityId, playerIds[0]));
-    await db.delete(scoreEvents).where(eq(scoreEvents.id, scoreEventId));
+    await db.delete(auditLogs).where(eq(auditLogs.adminUserId, adminId));
+    await db.delete(scoreEvents).where(eq(scoreEvents.playerId, playerIds[0]));
     await db.delete(answers).where(inArray(answers.id, answerIds));
     await db.delete(playerSessions).where(eq(playerSessions.id, playerSessionId));
     await db.delete(players).where(inArray(players.id, playerIds));
@@ -251,6 +256,117 @@ describe("admin player management with PostgreSQL", () => {
 
     expect(closed?.isCorrect).toBeNull();
     expect(revealed?.isCorrect).toBe(false);
+  });
+
+  it("ajoute la correction au ledger et recalcule le classement avec son audit", async () => {
+    await expect(
+      adjustAdminPlayerScore(
+        playerIds[0],
+        {
+          action: "ADJUST_SCORE",
+          quizSessionId: randomUUID(),
+          points: 50,
+          reason: "Session étrangère refusée pendant la recette",
+        },
+        adminId,
+        {
+          repository: postgresAdminPlayerManagementRepository,
+          createId: () => rejectedAdjustmentId,
+          now: () => now,
+        },
+      ),
+    ).rejects.toMatchObject({ name: "AdminPlayerSessionNotFoundError" });
+
+    const adjusted = await adjustAdminPlayerScore(
+      playerIds[0],
+      {
+        action: "ADJUST_SCORE",
+        quizSessionId: sessionId,
+        points: -50,
+        reason: "Correction de recette validée par la régie",
+      },
+      adminId,
+      {
+        repository: postgresAdminPlayerManagementRepository,
+        createId: () => adjustmentId,
+        now: () => now,
+      },
+    );
+
+    expect(adjusted.totalPoints).toBe(75);
+    expect(adjusted.scoreSessions).toContainEqual(
+      expect.objectContaining({ id: sessionId, points: 75 }),
+    );
+    expect(adjusted.scoreAdjustments).toEqual([
+      expect.objectContaining({
+        id: adjustmentId,
+        quizSessionId: sessionId,
+        points: -50,
+        reason: "Correction de recette validée par la régie",
+        adminDisplayName: "Régie joueurs intégration",
+      }),
+    ]);
+
+    const leaderboard = await getLeaderboard(
+      { eventSlug, sessionId },
+      undefined,
+      {
+        repository: postgresLeaderboardRepository,
+        sessionSecret: "integration-session-secret-not-used",
+        now: () => now,
+      },
+    );
+    expect(leaderboard.entries[0]).toMatchObject({
+      publicCode,
+      points: 75,
+      position: 1,
+    });
+
+    const [scoreRow, auditRow] = await db.batch([
+      db
+        .select({
+          type: scoreEvents.type,
+          points: scoreEvents.points,
+          metadata: scoreEvents.metadata,
+          createdByAdminId: scoreEvents.createdByAdminId,
+        })
+        .from(scoreEvents)
+        .where(eq(scoreEvents.id, adjustmentId)),
+      db
+        .select({
+          action: auditLogs.action,
+          entityType: auditLogs.entityType,
+          entityId: auditLogs.entityId,
+          metadata: auditLogs.metadata,
+        })
+        .from(auditLogs)
+        .where(eq(auditLogs.entityId, adjustmentId)),
+    ]);
+    expect(scoreRow[0]).toEqual({
+      type: "ADMIN_ADJUSTMENT",
+      points: -50,
+      metadata: { reason: "Correction de recette validée par la régie" },
+      createdByAdminId: adminId,
+    });
+    expect(auditRow[0]).toEqual(
+      expect.objectContaining({
+        action: "SCORE_ADJUSTED",
+        entityType: "score_event",
+        entityId: adjustmentId,
+        metadata: expect.objectContaining({
+          playerId: playerIds[0],
+          quizSessionId: sessionId,
+          points: -50,
+          reason: "Correction de recette validée par la régie",
+        }),
+      }),
+    );
+    await expect(
+      db
+        .select({ id: scoreEvents.id })
+        .from(scoreEvents)
+        .where(eq(scoreEvents.id, rejectedAdjustmentId)),
+    ).resolves.toEqual([]);
   });
 
   it("désactive, révoque la session et journalise une seule fois", async () => {

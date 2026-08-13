@@ -19,6 +19,7 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 13. TASK 13 — Administration des questions et catégories
 14. TASK 14 — Programmation des événements et sessions
 15. TASK 15 — Recherche, consultation et désactivation des joueurs
+16. TASK 16 — Ajustements manuels des scores avec motif et audit
 
 ## État
 
@@ -36,6 +37,7 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 - TASK 12 : QA automatisée terminée le 13 août 2026 ; recette de production bloquée par les écarts listés dans `docs/production-readiness.md`
 - TASK 13 : administration des questions et catégories terminée, fusionnée et déployée le 13 août 2026
 - TASK 14 : programmation des événements, création des sessions, conducteur ordonné et ouverture des inscriptions terminés, fusionnés et déployés le 13 août 2026
-- TASK 15 : recherche par pseudo ou code public, consultation du score et des réponses, désactivation avec révocation des sessions et audit développées ; validation PostgreSQL attendue sur la branche Neon de la PR
+- TASK 15 : recherche par pseudo ou code public, consultation du score et des réponses, désactivation avec révocation des sessions et audit terminées, fusionnées et déployées le 13 août 2026
+- TASK 16 : ajustements signés par session, motif obligatoire, ledger `ADMIN_ADJUSTMENT` et audit `SCORE_ADJUSTED` développés ; validation PostgreSQL attendue sur la branche Neon de la PR
 
 Le détail fonctionnel et les critères de recette restent définis dans `docs/cahier-des-charges-v1.md`.

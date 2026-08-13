@@ -9,6 +9,7 @@ import type {
   AdminPlayerAnswer,
   AdminPlayerDetail,
   AdminPlayerEvent,
+  AdminPlayerScoreAdjustment,
   AdminPlayerSummary,
 } from "@/server/services/admin-player-management";
 
@@ -24,13 +25,19 @@ type AdminPlayerAnswerView = Omit<AdminPlayerAnswer, "receivedAt"> & {
   receivedAt: string;
 };
 
+type AdminPlayerScoreAdjustmentView = Omit<
+  AdminPlayerScoreAdjustment,
+  "createdAt"
+> & { createdAt: string };
+
 type AdminPlayerDetailView = Omit<
   AdminPlayerDetail,
-  "createdAt" | "lastSeenAt" | "answers"
+  "createdAt" | "lastSeenAt" | "answers" | "scoreAdjustments"
 > & {
   createdAt: string;
   lastSeenAt: string;
   answers: AdminPlayerAnswerView[];
+  scoreAdjustments: AdminPlayerScoreAdjustmentView[];
 };
 
 type ApiErrorPayload = { error?: { message?: string } };
@@ -77,6 +84,12 @@ export function AdminPlayerManagementView({
   const [listPending, setListPending] = useState(false);
   const [detailPending, setDetailPending] = useState(false);
   const [disablePending, setDisablePending] = useState(false);
+  const [adjustmentPending, setAdjustmentPending] = useState(false);
+  const [adjustmentForm, setAdjustmentForm] = useState({
+    quizSessionId: "",
+    points: "",
+    reason: "",
+  });
   const [message, setMessage] = useState<string | null>(null);
 
   async function apiFetch(input: string, init?: RequestInit) {
@@ -131,6 +144,14 @@ export function AdminPlayerManagementView({
       if (!response.ok) throw new Error(await responseError(response));
       const payload = (await response.json()) as { player: AdminPlayerDetailView };
       setSelectedPlayer(payload.player);
+      setAdjustmentForm({
+        quizSessionId:
+          payload.player.scoreSessions.find(
+            (session) => session.status !== "CANCELED",
+          )?.id ?? "",
+        points: "",
+        reason: "",
+      });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Joueur indisponible.");
     } finally {
@@ -177,6 +198,70 @@ export function AdminPlayerManagementView({
       setMessage(error instanceof Error ? error.message : "Désactivation refusée.");
     } finally {
       setDisablePending(false);
+    }
+  }
+
+  async function adjustScore(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedPlayer) return;
+
+    const points = Number(adjustmentForm.points);
+    const reason = adjustmentForm.reason.trim();
+    const session = selectedPlayer.scoreSessions.find(
+      (candidate) => candidate.id === adjustmentForm.quizSessionId,
+    );
+    if (!Number.isInteger(points) || points === 0 || !session || reason.length < 5) {
+      setMessage("Choisissez une session, un nombre entier non nul et un motif précis.");
+      return;
+    }
+
+    const signedPoints = `${points > 0 ? "+" : ""}${points}`;
+    if (
+      !window.confirm(
+        `Appliquer ${signedPoints} points à ${selectedPlayer.nickname} pour « ${session.name} » ?\nMotif : ${reason}`,
+      )
+    ) {
+      return;
+    }
+
+    setAdjustmentPending(true);
+    setMessage(null);
+    try {
+      const response = await apiFetch(
+        `/api/admin/players/${selectedPlayer.id}/actions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "ADJUST_SCORE",
+            quizSessionId: session.id,
+            points,
+            reason,
+          }),
+        },
+      );
+      if (!response.ok) throw new Error(await responseError(response));
+      const payload = (await response.json()) as { player: AdminPlayerDetailView };
+      setSelectedPlayer(payload.player);
+      setPlayers((current) =>
+        current.map((player) =>
+          player.id === payload.player.id
+            ? { ...player, totalPoints: payload.player.totalPoints }
+            : player,
+        ),
+      );
+      setAdjustmentForm({
+        quizSessionId: session.id,
+        points: "",
+        reason: "",
+      });
+      setMessage(
+        `Ajustement ${signedPoints} enregistré dans le ledger et le journal d’audit.`,
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Ajustement refusé.");
+    } finally {
+      setAdjustmentPending(false);
     }
   }
 
@@ -307,7 +392,10 @@ export function AdminPlayerManagementView({
               </div>
             </section>
 
-            <section className="player-management-detail" aria-busy={detailPending || disablePending}>
+            <section
+              className="player-management-detail"
+              aria-busy={detailPending || disablePending || adjustmentPending}
+            >
               {!selectedPlayer ? (
                 <div className="player-management-detail-empty">
                   <span aria-hidden="true">P</span>
@@ -333,6 +421,109 @@ export function AdminPlayerManagementView({
                     <div><dt>Réponses</dt><dd>{selectedPlayer.answerCount}</dd></div>
                     <div><dt>Dernière activité</dt><dd>{formatDate(selectedPlayer.lastSeenAt)}</dd></div>
                   </dl>
+
+                  <section className="player-score-adjustment">
+                    <div className="player-score-adjustment-heading">
+                      <div>
+                        <p className="eyebrow">Correction exceptionnelle</p>
+                        <h3>Ajuster le score</h3>
+                      </div>
+                      <span>Ledger</span>
+                    </div>
+                    {selectedPlayer.scoreSessions.some(
+                      (session) => session.status !== "CANCELED",
+                    ) ? (
+                      <form onSubmit={adjustScore}>
+                        <label>
+                          <span>Session concernée</span>
+                          <select
+                            required
+                            value={adjustmentForm.quizSessionId}
+                            onChange={(event) =>
+                              setAdjustmentForm((current) => ({
+                                ...current,
+                                quizSessionId: event.target.value,
+                              }))
+                            }
+                          >
+                            {selectedPlayer.scoreSessions.map((session) => (
+                              <option
+                                key={session.id}
+                                value={session.id}
+                                disabled={session.status === "CANCELED"}
+                              >
+                                {session.name} — {session.points.toLocaleString("fr-FR")} pts
+                                {session.status === "CANCELED" ? " (annulée)" : ""}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          <span>Points</span>
+                          <input
+                            required
+                            type="number"
+                            step="1"
+                            inputMode="numeric"
+                            value={adjustmentForm.points}
+                            placeholder="Ex. 50 ou -50"
+                            onChange={(event) =>
+                              setAdjustmentForm((current) => ({
+                                ...current,
+                                points: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="player-score-adjustment-reason">
+                          <span>Motif obligatoire</span>
+                          <textarea
+                            required
+                            minLength={5}
+                            maxLength={300}
+                            value={adjustmentForm.reason}
+                            placeholder="Décrivez précisément la correction validée."
+                            onChange={(event) =>
+                              setAdjustmentForm((current) => ({
+                                ...current,
+                                reason: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                        <p>
+                          Le score existant ne sera pas écrasé. Une nouvelle ligne signée sera ajoutée au ledger.
+                        </p>
+                        <button type="submit" disabled={adjustmentPending}>
+                          {adjustmentPending ? "Enregistrement…" : "Confirmer l’ajustement"}
+                        </button>
+                      </form>
+                    ) : (
+                      <p className="player-management-empty">
+                        Aucune session disponible pour recevoir une correction.
+                      </p>
+                    )}
+
+                    {selectedPlayer.scoreAdjustments.length ? (
+                      <ol className="player-adjustment-history">
+                        {selectedPlayer.scoreAdjustments.map((adjustment) => (
+                          <li key={adjustment.id}>
+                            <span>
+                              <strong className={adjustment.points < 0 ? "is-negative" : undefined}>
+                                {adjustment.points > 0 ? "+" : ""}
+                                {adjustment.points.toLocaleString("fr-FR")} pts
+                              </strong>
+                              <small>{adjustment.sessionName}</small>
+                            </span>
+                            <p>{adjustment.reason}</p>
+                            <small>
+                              {adjustment.adminDisplayName} · {formatDate(adjustment.createdAt)}
+                            </small>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : null}
+                  </section>
 
                   {selectedPlayer.status === "ACTIVE" ? (
                     <div className="player-disable-panel">

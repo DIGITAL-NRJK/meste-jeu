@@ -9,6 +9,7 @@ const playerRepository = vi.hoisted(() => ({
   listPlayers: vi.fn(),
   getPlayer: vi.fn(),
   disablePlayer: vi.fn(),
+  appendScoreAdjustment: vi.fn(),
 }));
 
 vi.mock("@/lib/env/server", () => ({
@@ -50,6 +51,17 @@ const player = {
   createdAt: now,
   lastSeenAt: now,
   answers: [],
+  scoreSessions: [
+    {
+      id: "00000000-0000-4000-8000-000000000004",
+      name: "Session générale",
+      mode: "LIVE" as const,
+      status: "READY" as const,
+      resetScore: false,
+      points: 250,
+    },
+  ],
+  scoreAdjustments: [],
 };
 
 function request(
@@ -74,6 +86,7 @@ describe("admin player management API", () => {
     playerRepository.listPlayers.mockResolvedValue([player]);
     playerRepository.getPlayer.mockResolvedValue(player);
     playerRepository.disablePlayer.mockResolvedValue("disabled");
+    playerRepository.appendScoreAdjustment.mockResolvedValue("created");
   });
 
   it("protège la liste avant toute lecture métier", async () => {
@@ -130,6 +143,54 @@ describe("admin player management API", () => {
     );
   });
 
+  it("ajoute un ajustement signé avec motif et identité administrateur", async () => {
+    playerRepository.getPlayer.mockResolvedValue({ ...player, totalPoints: 200 });
+    const response = await runPlayerAction(
+      request(`http://localhost/api/admin/players/${playerId}/actions`, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "ADJUST_SCORE",
+          quizSessionId: player.scoreSessions[0].id,
+          points: -50,
+          reason: "Correction validée par la régie",
+        }),
+      }),
+      { params: Promise.resolve({ id: playerId }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(playerRepository.appendScoreAdjustment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        playerId,
+        quizSessionId: player.scoreSessions[0].id,
+        points: -50,
+        reason: "Correction validée par la régie",
+        actorAdminId: adminId,
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      player: { totalPoints: 200 },
+    });
+  });
+
+  it("refuse un ajustement nul ou sans motif exploitable", async () => {
+    const response = await runPlayerAction(
+      request(`http://localhost/api/admin/players/${playerId}/actions`, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "ADJUST_SCORE",
+          quizSessionId: player.scoreSessions[0].id,
+          points: 0,
+          reason: "Non",
+        }),
+      }),
+      { params: Promise.resolve({ id: playerId }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect(playerRepository.appendScoreAdjustment).not.toHaveBeenCalled();
+  });
+
   it("refuse une action inconnue sans modifier le joueur", async () => {
     const response = await runPlayerAction(
       request(`http://localhost/api/admin/players/${playerId}/actions`, {
@@ -141,5 +202,6 @@ describe("admin player management API", () => {
 
     expect(response.status).toBe(400);
     expect(playerRepository.disablePlayer).not.toHaveBeenCalled();
+    expect(playerRepository.appendScoreAdjustment).not.toHaveBeenCalled();
   });
 });

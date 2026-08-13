@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { z } from "zod";
 
 export type AdminPlayerEvent = {
@@ -34,9 +36,30 @@ export type AdminPlayerAnswer = {
   questionStatus: "PENDING" | "OPEN" | "CLOSED" | "REVEALED" | "CANCELED";
 };
 
+export type AdminPlayerScoreSession = {
+  id: string;
+  name: string;
+  mode: "DISCOVERY" | "LIVE";
+  status: "DRAFT" | "READY" | "LIVE" | "FINISHED" | "CANCELED";
+  resetScore: boolean;
+  points: number;
+};
+
+export type AdminPlayerScoreAdjustment = {
+  id: string;
+  quizSessionId: string;
+  sessionName: string;
+  points: number;
+  reason: string;
+  adminDisplayName: string;
+  createdAt: Date;
+};
+
 export type AdminPlayerDetail = AdminPlayerSummary & {
   event: AdminPlayerEvent;
   answers: AdminPlayerAnswer[];
+  scoreSessions: AdminPlayerScoreSession[];
+  scoreAdjustments: AdminPlayerScoreAdjustment[];
 };
 
 export type AdminPlayerFilters = {
@@ -51,6 +74,21 @@ export type DisablePlayerOutcome =
   | "not_found"
   | "already_disabled";
 
+export type AppendScoreAdjustmentOutcome =
+  | "created"
+  | "player_not_found"
+  | "session_not_found";
+
+export type PersistScoreAdjustment = {
+  scoreEventId: string;
+  playerId: string;
+  quizSessionId: string;
+  points: number;
+  reason: string;
+  actorAdminId: string;
+  now: Date;
+};
+
 export interface AdminPlayerManagementRepository {
   listEvents(): Promise<AdminPlayerEvent[]>;
   listPlayers(filters: AdminPlayerFilters): Promise<AdminPlayerSummary[]>;
@@ -60,6 +98,9 @@ export interface AdminPlayerManagementRepository {
     actorAdminId: string;
     now: Date;
   }): Promise<DisablePlayerOutcome>;
+  appendScoreAdjustment(
+    input: PersistScoreAdjustment,
+  ): Promise<AppendScoreAdjustmentOutcome>;
 }
 
 export class AdminPlayerInputError extends Error {
@@ -90,6 +131,13 @@ export class AdminPlayerAlreadyDisabledError extends Error {
   }
 }
 
+export class AdminPlayerSessionNotFoundError extends Error {
+  constructor() {
+    super("Admin player score session not found");
+    this.name = "AdminPlayerSessionNotFoundError";
+  }
+}
+
 const eventSlugSchema = z
   .string()
   .trim()
@@ -108,6 +156,20 @@ const playerListFiltersSchema = z
   .strict();
 
 const playerIdSchema = z.uuid();
+
+export const adminScoreAdjustmentInputSchema = z
+  .object({
+    action: z.literal("ADJUST_SCORE"),
+    quizSessionId: z.uuid(),
+    points: z.coerce
+      .number()
+      .int()
+      .min(-2_147_483_648)
+      .max(2_147_483_647)
+      .refine((points) => points !== 0, "L’ajustement doit être différent de zéro."),
+    reason: z.string().trim().min(5).max(300),
+  })
+  .strict();
 
 export async function getAdminPlayerManagement(
   input: unknown,
@@ -178,4 +240,44 @@ export async function disableAdminPlayer(
   }
 
   return getAdminPlayer(parsed.data.playerId, dependencies.repository);
+}
+
+export async function adjustAdminPlayerScore(
+  playerId: unknown,
+  input: unknown,
+  actorAdminId: unknown,
+  dependencies: {
+    repository: AdminPlayerManagementRepository;
+    now?: () => Date;
+    createId?: () => string;
+  },
+): Promise<AdminPlayerDetail> {
+  const identifiers = z
+    .object({ playerId: playerIdSchema, actorAdminId: z.uuid() })
+    .safeParse({ playerId, actorAdminId });
+  const adjustment = adminScoreAdjustmentInputSchema.safeParse(input);
+
+  if (!identifiers.success || !adjustment.success) {
+    throw new AdminPlayerInputError([
+      ...(identifiers.success ? [] : identifiers.error.issues),
+      ...(adjustment.success ? [] : adjustment.error.issues),
+    ]);
+  }
+
+  const outcome = await dependencies.repository.appendScoreAdjustment({
+    scoreEventId: dependencies.createId?.() ?? randomUUID(),
+    playerId: identifiers.data.playerId,
+    quizSessionId: adjustment.data.quizSessionId,
+    points: adjustment.data.points,
+    reason: adjustment.data.reason,
+    actorAdminId: identifiers.data.actorAdminId,
+    now: dependencies.now?.() ?? new Date(),
+  });
+
+  if (outcome === "player_not_found") throw new AdminPlayerNotFoundError();
+  if (outcome === "session_not_found") {
+    throw new AdminPlayerSessionNotFoundError();
+  }
+
+  return getAdminPlayer(identifiers.data.playerId, dependencies.repository);
 }

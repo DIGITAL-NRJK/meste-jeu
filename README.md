@@ -68,7 +68,7 @@ Le token joueur brut reste exclusivement dans un cookie `HttpOnly`. Seule son em
 
 ## Bibliothèque de questions
 
-La couche serveur permet de créer les catégories et de gérer le cycle `DRAFT → REVIEW → VALIDATED → ARCHIVED` des questions texte ou image. La revue et la validation exigent de deux à quatre propositions, exactement une bonne réponse et au moins une source. Les interfaces administrateur seront raccordées lors de la TASK 09 ; aucun secret de réponse n’est exposé par une route publique à ce stade.
+La couche serveur permet de créer les catégories et de gérer le cycle `DRAFT → REVIEW → VALIDATED → ARCHIVED` des questions texte ou image. La revue et la validation exigent de deux à quatre propositions, exactement une bonne réponse et au moins une source. L’interface protégée `/admin/questions` raccorde ces cas d’usage sans exposer de secret de réponse par une route publique.
 
 Le contrat métier et les invariants sont documentés dans `docs/question-library.md`.
 
@@ -76,7 +76,7 @@ Le contrat métier et les invariants sont documentés dans `docs/question-librar
 
 Le moteur serveur crée et configure les sessions, n’accepte que des questions validées et contrôle les cycles `DRAFT → READY → LIVE → FINISHED` et `PENDING → OPEN → CLOSED → REVEALED`. PostgreSQL garantit qu’une seule occurrence peut être ouverte à la fois dans une session.
 
-Le DTO joueur omet la bonne réponse et l’explication avant la révélation. Les interfaces joueur et administrateur seront raccordées dans les tâches dédiées. Le contrat complet est documenté dans `docs/session-engine.md`.
+Le DTO joueur omet la bonne réponse et l’explication avant la révélation. L’interface protégée `/admin/sessions` crée les événements et sessions, compose leur conducteur ordonné avec des durées serveur, verrouille les sessions prêtes et ouvre ensuite les inscriptions. Le contrat complet est documenté dans `docs/session-engine.md`.
 
 ## Réponse et scoring
 
@@ -101,7 +101,7 @@ Le calcul exclut les scores invalidés et les joueurs désactivés. Le contrat e
 
 L’espace `/admin` est protégé par une session serveur de douze heures. Les mots de passe administrateur sont hashés avec `scrypt`, les tokens bruts restent dans un cookie `HttpOnly` et seule leur empreinte HMAC est stockée. Cinq échecs de connexion verrouillent temporairement le compte.
 
-Le dashboard affiche les participants, l’activité récente, la session et la question courantes, les statistiques de réponse, le Top 10 et l’état de la bibliothèque. La régie permet aussi de préparer et lancer une session, conduire le cycle des questions, annuler une question, terminer la session, exporter les joueurs, le classement et les réponses, puis consulter les dernières actions administratives. Le contrat de sécurité, les métriques et les commandes sont documentés dans `docs/admin-dashboard.md`, `docs/live-control.md` et `docs/admin-reporting.md`.
+Le dashboard affiche les participants, l’activité récente, la session et la question courantes, les statistiques de réponse, le Top 10 et l’état de la bibliothèque. La régie permet aussi de programmer les événements et sessions, ordonner les questions, ouvrir les inscriptions, conduire le cycle live, annuler une question, terminer la session, exporter les joueurs, le classement et les réponses, puis consulter les dernières actions administratives. Le contrat de sécurité, les métriques et les commandes sont documentés dans `docs/admin-dashboard.md`, `docs/live-control.md`, `docs/admin-reporting.md` et `docs/session-engine.md`.
 
 ## Déploiement Netlify
 

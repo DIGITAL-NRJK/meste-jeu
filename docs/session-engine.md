@@ -1,6 +1,6 @@
 # Moteur de session
 
-La TASK 05 fournit le moteur serveur des sessions de quiz. Elle ne crée pas encore l’interface d’administration : l’authentification et le dashboard seront ajoutés en TASK 09, puis les commandes opérateur en TASK 10. Les routes joueur et l’interface mobile seront raccordées en TASK 07.
+La TASK 05 fournit le moteur serveur des sessions de quiz. Les routes joueur et l’interface mobile sont raccordées depuis la TASK 07, le dashboard et les commandes opérateur depuis les TASK 09 et 10, puis la création des événements, des sessions et de leur conducteur depuis la TASK 14.
 
 ## Cycle d’une session
 
@@ -11,6 +11,8 @@ DRAFT → READY → LIVE → FINISHED
 ```
 
 Le passage en `READY` et le démarrage revalident qu’au moins une question est configurée et que toutes les questions sont encore validées. Le démarrage et la fin utilisent l’heure du serveur et produisent respectivement les audits `SESSION_STARTED` et `SESSION_FINISHED`.
+
+L’interface `/admin/sessions` conserve le conducteur en `DRAFT` tant que l’ordre et les durées restent modifiables. Elle ne propose que les questions `VALIDATED`. Une fois la session rendue `READY`, le conducteur devient non modifiable et l’événement peut passer de `DRAFT` à `READY` pour ouvrir les inscriptions joueur.
 
 ## Cycle d’une occurrence
 

@@ -294,7 +294,8 @@ export function AdminDashboardView({
           <section className="admin-empty-state">
             <p className="eyebrow">Aucun événement</p>
             <h2>La régie attend sa première programmation.</h2>
-            <p>Créez l’événement et ses données en base avant d’ouvrir la supervision.</p>
+            <p>Créez l’événement, sa session et son conducteur avant d’ouvrir la supervision.</p>
+            <a href="/admin/sessions">Créer la première programmation →</a>
           </section>
         ) : (
           <>
@@ -353,6 +354,7 @@ export function AdminDashboardView({
               <a href="#participants">Participants</a>
               <a href="#question">Question actuelle</a>
               <a href="#classement">Classement</a>
+              <a href="/admin/sessions">Programmation</a>
               <a href="/admin/questions">Questions</a>
               <a href="#exports">Exports</a>
               <a href="#audit">Audit</a>

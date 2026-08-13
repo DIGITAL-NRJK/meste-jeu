@@ -13,7 +13,7 @@ La fiabilité du moteur, du scoring, du temps serveur, de l’inscription, du cl
 ## Bloquants fonctionnels issus du cahier des charges
 
 - [x] Raccorder à `/admin` la création, l’édition, la duplication, la validation et l’archivage des questions et catégories.
-- [ ] Raccorder à `/admin` la création des sessions et la configuration de leur ordre de questions.
+- [x] Raccorder à `/admin` la création des événements et sessions, la configuration de leur ordre de questions et l’ouverture des inscriptions.
 - [ ] Ajouter la recherche, la consultation et la désactivation d’un joueur.
 - [ ] Ajouter les ajustements de score `ADMIN_ADJUSTMENT` avec motif et audit.
 - [ ] Raccorder la gestion et l’attribution des récompenses.
@@ -21,7 +21,9 @@ La fiabilité du moteur, du scoring, du temps serveur, de l’inscription, du cl
 
 Le schéma et plusieurs services métier existent déjà pour certaines de ces capacités, mais une personne MESTE ne peut pas encore les utiliser intégralement sans intervention technique. Cela diverge du critère du cahier des charges selon lequel l’administration doit piloter tout le quiz.
 
-TASK 13 raccorde la bibliothèque à `/admin/questions` avec recherche, filtres, cycle éditorial, sources, QCM texte/image et activation des catégories. Sa validation PostgreSQL reste réservée au workflow Neon de la PR ; aucune donnée de production ne doit être utilisée pour cette vérification.
+TASK 13 raccorde la bibliothèque à `/admin/questions` avec recherche, filtres, cycle éditorial, sources, QCM texte/image et activation des catégories. Elle est fusionnée et déployée.
+
+TASK 14 ajoute `/admin/sessions` pour créer un événement, créer ses sessions, composer le conducteur ordonné à partir des seules questions validées, fixer chaque durée et verrouiller une session en `READY`. L’ouverture des inscriptions fait passer l’événement de `DRAFT` à `READY` uniquement si une session est elle-même prête. Sa validation PostgreSQL reste réservée au workflow Neon de la PR ; aucune donnée de production ne doit être utilisée pour cette vérification.
 
 ## Contrôles automatisés avant chaque fusion
 
@@ -51,6 +53,7 @@ Tester au minimum sur un iPhone et un Android réels, dont un écran proche de 3
 - [ ] vérifier le score, la série et le classement après révélation ;
 - [ ] annuler une question et vérifier la disparition des points associés ;
 - [ ] exécuter le cycle complet depuis un second appareil connecté à `/admin` ;
+- [ ] créer un événement et une session depuis `/admin/sessions`, enregistrer l’ordre, rendre la session prête puis ouvrir les inscriptions ;
 - [ ] couper puis rétablir le réseau sur un téléphone pendant une question ;
 - [ ] télécharger et ouvrir les trois CSV dans Excel et Google Sheets ;
 - [ ] vérifier la navigation clavier de la connexion admin et des réponses joueur ;

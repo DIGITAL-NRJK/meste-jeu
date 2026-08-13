@@ -37,6 +37,8 @@ TASK 19 ajoute un contexte d’événement `TEST` ou `PRODUCTION`, indépendant 
 
 Dans un événement `TEST` non clôturé, la régie peut supprimer un joueur même pendant une répétition live. Le serveur supprime atomiquement ses sessions, consentements, réponses, écritures de score et attributions de lots, puis conserve un audit `PLAYER_DELETED` sans donnée secrète. Dans un événement `PRODUCTION`, cette commande est refusée côté serveur : seule la désactivation avec révocation de session reste disponible. Le nom, les dates, le fuseau et le contexte ne sont modifiables qu’en `DRAFT`; le slug et donc le lien joueur restent stables.
 
+TASK 20 ajoute `/admin/accounts` pour créer des accès administrateur nominatifs, désactiver ou réactiver un compte et révoquer immédiatement toutes ses sessions lors de la désactivation. Le mot de passe initial est validé et haché côté serveur, sans jamais revenir dans un DTO ou un log. Le serveur sérialise les changements de statut en base et interdit de désactiver le dernier compte actif. Chaque création et changement de statut produit un audit dédié.
+
 Le seed éditorial du 66e anniversaire prépare 5 catégories, 50 questions sourcées et 6 sessions en brouillon dans le fuseau `Africa/Accra`. Sa procédure sécurisée est documentée dans `docs/seed-independence-66.md`. Il a été validé sur la branche Neon éphémère puis appliqué sur Neon production après création d’un point de restauration et confirmation explicite de l’opérateur.
 
 ## Contrôles automatisés avant chaque fusion
@@ -77,11 +79,14 @@ Tester au minimum sur un iPhone et un Android réels, dont un écran proche de 3
 - [ ] appliquer `+50`, puis `-50` au même joueur avec deux motifs distincts et vérifier le score, le classement, l’historique et les audits `SCORE_ADJUSTED` ;
 - [ ] créer deux lots dans `/admin/rewards`, l’un par position et l’autre par condition, puis désactiver et réactiver le second ;
 - [ ] attribuer un lot à un joueur, vérifier l’audit `REWARD_AWARDED`, refuser une seconde attribution identique puis confirmer la remise et son horodatage ;
+- [ ] créer un second administrateur dans `/admin/accounts`, vérifier sa première connexion, puis sa présence dans la liste sans mot de passe ni hash exposé ;
+- [ ] désactiver ce second administrateur, vérifier la révocation de sa session et l’audit `ADMIN_USER_DISABLED`, puis le réactiver ;
+- [ ] confirmer que la régie refuse la désactivation du dernier compte administrateur actif ;
 - [ ] couper puis rétablir le réseau sur un téléphone pendant une question ;
 - [ ] télécharger et ouvrir les trois CSV dans Excel et Google Sheets ;
 - [ ] vérifier la navigation clavier de la connexion admin et des réponses joueur ;
 - [ ] vérifier l’absence de débordement horizontal à 360 px ;
-- [ ] vérifier les écrans `/admin`, `/admin/questions`, `/admin/sessions`, `/admin/players` et `/admin/rewards` à 360, 768, 1024 et 1366 px, avec le nom long de l’événement seedé ;
+- [ ] vérifier les écrans `/admin`, `/admin/questions`, `/admin/sessions`, `/admin/players`, `/admin/rewards` et `/admin/accounts` à 360, 768, 1024 et 1366 px, avec le nom long de l’événement seedé ;
 - [ ] vérifier que le journal, les listes joueurs/lots et les conducteurs longs défilent dans leur panneau sans allonger démesurément la page ;
 - [ ] vérifier au clavier les onglets Contenu, Réponses et Sources d’une fiche question ;
 - [ ] vérifier l’heure et le fuseau configurés pour l’événement ;
@@ -129,6 +134,7 @@ Baseline locale du 13 août 2026, sur le build de production : 500 requêtes ver
 - [ ] `SESSION_SECRET` et `ADMIN_AUTH_SECRET` sont distincts, aléatoires et longs d’au moins 32 caractères ;
 - [ ] aucune valeur de `.env.example` n’est utilisée en production ;
 - [ ] le premier compte administrateur est actif et testé depuis un appareil de secours ;
+- [ ] un second compte administrateur nominatif est actif, testé et réservé à l’opérateur de secours ;
 - [ ] le build Netlify utilise Node 22.18.0 et npm 11.6.2 ;
 - [ ] les deux règles Netlify Edge de rate limiting sont reconnues dans le log du déploiement ;
 - [ ] `/api/health` répond en HTTPS avec `status: ok` ;

@@ -1195,7 +1195,8 @@ input:focus-visible {
   white-space: nowrap;
 }
 
-.admin-account button {
+.admin-account button,
+.admin-account a {
   padding: 0;
   border: 0;
   background: none;
@@ -4172,12 +4173,271 @@ input:focus-visible {
   }
 }
 
+/* Admin account management */
+.admin-accounts-page {
+  background:
+    radial-gradient(circle at 90% 8%, rgb(112 193 145 / 10%), transparent 30rem),
+    var(--background);
+}
+
+.admin-accounts-shell {
+  width: min(100%, 78rem);
+  margin: 0 auto;
+  padding: 2.25rem 1rem 4rem;
+}
+
+.admin-accounts-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.admin-accounts-hero > div:first-child {
+  min-width: 0;
+  max-width: 44rem;
+}
+
+.admin-accounts-hero > div:first-child > a {
+  display: inline-flex;
+  margin-bottom: 1.6rem;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.admin-accounts-hero h1 {
+  margin: 0.45rem 0 0;
+  font-family: var(--display-font);
+  font-size: clamp(3rem, 11vw, 5.5rem);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+}
+
+.admin-accounts-hero > div:first-child > p:last-child {
+  margin: 1rem 0 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.admin-accounts-count {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  color: var(--brand-accent);
+}
+
+.admin-accounts-count strong {
+  font-family: var(--display-font);
+  font-size: 3.2rem;
+  font-weight: 500;
+}
+
+.admin-accounts-count span {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-accounts-message {
+  margin: 1.25rem 0 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(242 193 78 / 30%);
+  border-radius: 0.9rem;
+  background: rgb(242 193 78 / 7%);
+  color: var(--brand-accent);
+  font-size: 0.8rem;
+}
+
+.admin-accounts-grid {
+  display: grid;
+  margin-top: 2rem;
+  gap: 1rem;
+}
+
+.admin-accounts-panel {
+  min-width: 0;
+  padding: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 1.35rem;
+  background: rgb(16 39 31 / 84%);
+}
+
+.admin-accounts-panel h2 {
+  margin: 0.35rem 0 0;
+  font-family: var(--display-font);
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+.admin-accounts-form {
+  display: grid;
+  margin-top: 1.25rem;
+  gap: 0.75rem;
+}
+
+.admin-accounts-form label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.admin-accounts-form label > span {
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.admin-accounts-form input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: rgb(248 242 229 / 5%);
+  color: var(--text-primary);
+}
+
+.admin-accounts-form input:focus-visible,
+.admin-accounts-form button:focus-visible,
+.admin-accounts-actions button:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+.admin-accounts-password-help {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.admin-accounts-form button,
+.admin-accounts-actions button {
+  min-height: 2.8rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--brand-accent);
+  color: #132019;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.admin-accounts-form button:disabled,
+.admin-accounts-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-accounts-list {
+  display: grid;
+  max-height: 36rem;
+  margin-top: 1.25rem;
+  gap: 0.65rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.25rem;
+  scrollbar-gutter: stable;
+}
+
+.admin-accounts-list article {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: rgb(248 242 229 / 3%);
+}
+
+.admin-accounts-identity {
+  display: grid;
+  min-width: 0;
+  gap: 0.3rem;
+}
+
+.admin-accounts-identity > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-accounts-identity > div span,
+.admin-account-status {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid rgb(112 193 145 / 42%);
+  border-radius: 999px;
+  color: #9fe0b9;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-accounts-identity a {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-accounts-identity small,
+.admin-accounts-actions small {
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.admin-accounts-actions {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.admin-account-status--disabled {
+  border-color: rgb(234 126 121 / 42%);
+  color: #ffaaa5;
+}
+
+@media (min-width: 48rem) {
+  .admin-accounts-list article {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .admin-accounts-actions {
+    align-items: flex-end;
+  }
+}
+
+@media (min-width: 68rem) {
+  .admin-accounts-grid {
+    grid-template-columns: minmax(19rem, 0.68fr) minmax(32rem, 1.32fr);
+    align-items: start;
+  }
+
+  .admin-accounts-grid > section:first-child {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
 @media (max-width: 43.99rem) {
   .admin-dashboard,
   .question-library-shell,
   .programming-shell,
   .player-management-shell,
-  .reward-management-shell {
+  .reward-management-shell,
+  .admin-accounts-shell {
     padding-right: 0.75rem;
     padding-left: 0.75rem;
   }
@@ -4185,6 +4445,7 @@ input:focus-visible {
   .admin-dashboard-intro h1,
   .player-management-hero h1,
   .reward-management-hero h1,
+  .admin-accounts-hero h1,
   .programming-hero h1,
   .question-library-hero h1 {
     font-size: clamp(2.55rem, 14vw, 4rem);

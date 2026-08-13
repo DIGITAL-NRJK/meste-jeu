@@ -23,6 +23,7 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 17. TASK 17 — Gestion et attribution des lots/récompenses
 18. TASK 18 — Stabilisation responsive et densité des écrans administrateur
 19. TASK 19 — Mode de recette et cycle de vie réversible avant clôture
+20. TASK 20 — Gestion sécurisée des comptes administrateurs
 
 ## État
 
@@ -44,6 +45,7 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 - TASK 16 : ajustements signés par session, motif obligatoire, ledger `ADMIN_ADJUSTMENT` et audit `SCORE_ADJUSTED` terminés, fusionnés et déployés le 13 août 2026
 - TASK 17 : catalogue des lots par événement, règles d’attribution, attribution aux joueurs et suivi de remise terminés, fusionnés et déployés le 13 août 2026
 - TASK 18 : correction des débordements horizontaux, densification des écrans de régie et limitation des listes longues terminées, fusionnées et déployées le 13 août 2026
-- TASK 19 : contexte `TEST` ou `PRODUCTION` distinct du cycle de vie, retour contrôlé vers `DRAFT`, clôture explicite `FINISHED` et suppression transactionnelle des joueurs de test développés ; validation de la branche Neon de PR en attente
+- TASK 19 : contexte `TEST` ou `PRODUCTION` distinct du cycle de vie, retour contrôlé vers `DRAFT`, clôture explicite `FINISHED` et suppression transactionnelle des joueurs de test terminés, fusionnés et déployés le 13 août 2026
+- TASK 20 : création, désactivation et réactivation des comptes administrateurs depuis la régie, avec révocation des sessions, protection du dernier compte actif et audit développés ; validation de la branche Neon de PR en attente
 
 Le détail fonctionnel et les critères de recette restent définis dans `docs/cahier-des-charges-v1.md`.

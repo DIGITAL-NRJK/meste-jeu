@@ -88,4 +88,10 @@ describe("initial PostgreSQL migration", () => {
     expect(migrationSql).toContain("EVENT_RESET_DRAFT");
     expect(migrationSql).toContain("PLAYER_DELETED");
   });
+
+  it("journalise le cycle de vie des comptes administrateurs", () => {
+    expect(migrationSql).toContain("ADMIN_USER_CREATED");
+    expect(migrationSql).toContain("ADMIN_USER_DISABLED");
+    expect(migrationSql).toContain("ADMIN_USER_REACTIVATED");
+  });
 });

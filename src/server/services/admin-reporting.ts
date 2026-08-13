@@ -61,7 +61,10 @@ export type AuditAction =
   | "EVENT_UPDATED"
   | "EVENT_RESET_DRAFT"
   | "EVENT_FINISHED"
-  | "PLAYER_DELETED";
+  | "PLAYER_DELETED"
+  | "ADMIN_USER_CREATED"
+  | "ADMIN_USER_DISABLED"
+  | "ADMIN_USER_REACTIVATED";
 
 export type AdminAuditLogEntry = {
   id: string;

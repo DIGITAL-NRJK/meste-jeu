@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+import { AdminRegieShell } from "@/components/admin/admin-regie-shell";
 import type { AdminIdentity } from "@/server/services/admin-auth";
 
 export type AdminCategoryView = {
@@ -499,22 +499,15 @@ export function AdminQuestionLibraryView({
   }, [editable]);
 
   return (
-    <main className="admin-page admin-library-page">
-      <header className="admin-topbar">
-        <Link href="/admin" className="admin-wordmark admin-wordmark-link">
-          <span className="brand-mark" aria-hidden="true">M</span>
-          <span><strong>RÉGIE MESTE</strong><small>Bibliothèque culturelle</small></span>
-        </Link>
-        <div className="admin-account">
-          <span>{admin.displayName}</span>
-          <button type="button" onClick={logout}>Se déconnecter</button>
-        </div>
-      </header>
-
-      <div className="question-library-shell">
+    <AdminRegieShell
+      activePage="questions"
+      admin={admin}
+      onLogout={logout}
+      toolbarLabel="Bibliothèque culturelle"
+    >
+      <div className="question-library-shell admin-subpage-shell">
         <section className="question-library-hero">
           <div>
-            <Link href="/admin" className="question-library-back">← Retour à la régie</Link>
             <p className="eyebrow">Table éditoriale</p>
             <h1>Questions &amp; catégories</h1>
             <p>
@@ -691,6 +684,6 @@ export function AdminQuestionLibraryView({
           </form>
         </section>
       </div>
-    </main>
+    </AdminRegieShell>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { AdminRegieShell } from "@/components/admin/admin-regie-shell";
 import type { AdminIdentity } from "@/server/services/admin-auth";
 import type {
   AdminPlayerAnswer,
@@ -325,49 +326,39 @@ export function AdminPlayerManagementView({
   }
 
   return (
-    <main className="admin-page admin-players-page">
-      <header className="admin-topbar">
-        <div className="admin-wordmark">
-          <span className="brand-mark" aria-hidden="true">M</span>
-          <span>
-            <strong>RÉGIE MESTE</strong>
-            <small>Héritage Congo</small>
-          </span>
-        </div>
-        <div className="admin-account">
-          <span>{admin.displayName}</span>
-          <button type="button" onClick={logout}>Se déconnecter</button>
-        </div>
-      </header>
-
-      <div className="player-management-shell">
+    <AdminRegieShell
+      activePage="players"
+      admin={admin}
+      eventName={currentEvent?.name}
+      eventSlug={eventSlug}
+      onLogout={logout}
+      toolbar={initialEvents.length ? (
+        <label className="regie-event-select">
+          <span>Événement</span>
+          <select value={eventSlug} onChange={(event) => changeEvent(event.target.value)}>
+            {initialEvents.map((event) => (
+              <option key={event.id} value={event.slug}>
+                {event.environment === "TEST" ? "[TEST] " : ""}{event.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : undefined}
+      toolbarLabel="Participants"
+    >
+      <div className="player-management-shell admin-subpage-shell">
         <section className="player-management-hero">
           <div>
-            <Link href={eventSlug ? `/admin?event=${encodeURIComponent(eventSlug)}` : "/admin"}>
-              ← Retour à la régie
-            </Link>
             <p className="eyebrow">Participants</p>
             <h1>Gestion des joueurs</h1>
             <p>Retrouvez un joueur, contrôlez son historique et sécurisez son accès.</p>
           </div>
-          {initialEvents.length ? (
-            <label className="admin-event-select">
-              <span>Événement</span>
-              <select value={eventSlug} onChange={(event) => changeEvent(event.target.value)}>
-                {initialEvents.map((event) => (
-                  <option key={event.id} value={event.slug}>
-                    {event.environment === "TEST" ? "[TEST] " : ""}{event.name}
-                  </option>
-                ))}
-              </select>
-              {currentEvent ? (
-                <small>
-                  {currentEvent.environment === "TEST"
-                    ? "Contexte test : les joueurs peuvent être supprimés avant clôture."
-                    : "Contexte production : les joueurs peuvent uniquement être désactivés."}
-                </small>
-              ) : null}
-            </label>
+          {currentEvent ? (
+            <p className="admin-context-note">
+              {currentEvent.environment === "TEST"
+                ? "Contexte test : les joueurs peuvent être supprimés avant clôture."
+                : "Contexte production : les joueurs peuvent uniquement être désactivés."}
+            </p>
           ) : null}
         </section>
 
@@ -650,6 +641,6 @@ export function AdminPlayerManagementView({
           </div>
         )}
       </div>
-    </main>
+    </AdminRegieShell>
   );
 }

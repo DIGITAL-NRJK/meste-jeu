@@ -5625,3 +5625,650 @@ input:focus-visible {
     padding-left: 1rem;
   }
 }
+
+/* TASK 22 — identité MESTE étendue à toute la régie */
+.regie-shell--subpage {
+  --background: #f6f0e5;
+  --surface: #fffaf1;
+  --surface-raised: #ffffff;
+  --text-primary: #241f1c;
+  --text-secondary: #716a62;
+  --border: #dcd2c0;
+  --brand-primary: #173d27;
+  --brand-accent: #c99a3a;
+  --success: #2f6b49;
+  --error: #8c3040;
+  background: var(--regie-ivory);
+  color: var(--regie-ink);
+}
+
+.regie-admin-content {
+  min-width: 0;
+}
+
+.regie-shell--subpage .admin-subpage-shell {
+  width: min(100%, 94rem);
+  margin: 0 auto;
+  padding: clamp(1.75rem, 3.5vw, 3.25rem) clamp(1rem, 3vw, 2.5rem) 4rem;
+  color: var(--regie-ink);
+}
+
+.regie-shell--subpage .eyebrow {
+  color: var(--regie-green);
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+}
+
+.regie-shell--subpage :is(
+  .programming-hero,
+  .question-library-hero,
+  .player-management-hero,
+  .reward-management-hero,
+  .admin-accounts-hero
+) {
+  padding: 0 0 1.65rem;
+  border-bottom: 0;
+}
+
+.regie-shell--subpage :is(
+  .programming-hero h1,
+  .question-library-hero h1,
+  .player-management-hero h1,
+  .reward-management-hero h1,
+  .admin-accounts-hero h1
+) {
+  max-width: 18ch;
+  margin: 0.45rem 0 0;
+  color: var(--regie-wine);
+  font-size: clamp(2.45rem, 4.6vw, 3.75rem);
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  overflow-wrap: normal;
+}
+
+.regie-shell--subpage :is(
+  .programming-hero > div > p:last-child,
+  .question-library-hero > div:first-child > p:last-child,
+  .player-management-hero > div:first-child > p:last-child,
+  .reward-management-hero > div:first-child > p:last-child,
+  .admin-accounts-hero > div:first-child > p:last-child
+) {
+  margin-top: 0.8rem;
+  color: var(--regie-muted);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.regie-shell--subpage .admin-context-note {
+  max-width: 26rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--regie-wine-soft);
+  background: rgb(90 13 24 / 6%);
+  color: var(--regie-wine-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.regie-shell--subpage :is(
+  .programming-event-bar,
+  .programming-event-summary,
+  .programming-creation-form,
+  .programming-session-index,
+  .programming-editor,
+  .question-library-index,
+  .question-editor,
+  .category-manager,
+  .player-management-index,
+  .player-management-detail,
+  .reward-panel,
+  .admin-accounts-panel
+) {
+  border-color: var(--regie-border);
+  border-radius: 0.7rem;
+  background: rgb(255 253 248 / 84%);
+  box-shadow: none;
+}
+
+.regie-shell--subpage :is(
+  .question-library-filters,
+  .question-editor-heading,
+  .question-editor-readonly,
+  .question-source-row,
+  .programming-question-bank,
+  .programming-lineup,
+  .programming-session-list > button,
+  .programming-lineup li,
+  .programming-locked-lineup li,
+  .player-management-list > button,
+  .player-detail-stats > div,
+  .player-score-adjustment,
+  .player-adjustment-history li,
+  .player-answer-history li,
+  .reward-list article,
+  .reward-award-list article,
+  .admin-accounts-list article
+) {
+  border-color: var(--regie-border);
+  background: rgb(255 255 255 / 58%);
+  color: var(--regie-ink);
+}
+
+.regie-shell--subpage :is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea
+) {
+  border-color: var(--regie-border);
+  background: rgb(255 255 255 / 72%);
+  color: var(--regie-ink);
+}
+
+.regie-shell--subpage :is(input, textarea)::placeholder {
+  color: #9c948a;
+}
+
+.regie-shell--subpage :is(
+  .programming-event-actions button:not(.programming-secondary-action):not(.programming-danger-action),
+  .programming-creation-form > button,
+  .programming-form-actions button:not(.programming-secondary-action),
+  .programming-section-heading > button,
+  .programming-empty button,
+  .programming-lineup footer button:not(.programming-secondary-action),
+  .question-library-index-heading > button,
+  .question-library-filters > button,
+  .question-editor-actions button:not(.question-secondary-action):not(.question-danger-action),
+  .player-management-filters > button,
+  .player-score-adjustment form > button,
+  .reward-form > button,
+  .admin-accounts-form button
+) {
+  border-color: var(--regie-green);
+  background: var(--regie-green);
+  color: var(--regie-ivory);
+}
+
+.regie-shell--subpage :is(
+  .programming-event-actions .programming-secondary-action,
+  .programming-form-actions .programming-secondary-action,
+  .programming-lineup footer .programming-secondary-action,
+  .question-editor-tabs button,
+  .reward-panel-heading > button,
+  .reward-list article > button:last-child,
+  .admin-accounts-actions button
+) {
+  border-color: var(--regie-border);
+  background: transparent;
+  color: var(--regie-wine-soft);
+}
+
+.regie-shell--subpage :is(
+  .programming-event-actions .programming-danger-action,
+  .question-danger-action,
+  .player-disable-panel button,
+  .player-delete-panel button
+) {
+  border-color: rgb(90 13 24 / 42%);
+  background: transparent;
+  color: var(--regie-wine-soft);
+}
+
+.regie-shell--subpage .programming-steps {
+  border-color: var(--regie-border);
+  border-radius: 0.7rem;
+  background: rgb(255 253 248 / 66%);
+}
+
+.regie-shell--subpage .programming-steps li {
+  border-color: var(--regie-border);
+  color: #9c948a;
+}
+
+.regie-shell--subpage .programming-steps .is-current {
+  background: var(--regie-wine);
+  color: #e4b951;
+}
+
+.regie-shell--subpage .programming-steps .is-done {
+  color: var(--regie-green);
+}
+
+.regie-shell--subpage .programming-event-bar {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.regie-shell--subpage .programming-event-actions {
+  justify-content: flex-end;
+}
+
+.regie-shell--subpage .programming-event-summary div,
+.regie-shell--subpage .question-library-list > button,
+.regie-shell--subpage .category-manager-list > button,
+.regie-shell--subpage .admin-accounts-list article {
+  border-color: var(--regie-border);
+}
+
+.regie-shell--subpage :is(
+  .question-library-list > button:hover,
+  .question-library-list > button.is-selected,
+  .programming-session-list > button:hover,
+  .programming-session-list > button.is-selected,
+  .player-management-list > button:hover,
+  .player-management-list > button.is-selected,
+  .reward-list article.is-selected
+) {
+  border-color: rgb(90 13 24 / 26%);
+  background: #f9efec;
+}
+
+.regie-shell--subpage .question-editor-tabs button[aria-selected="true"] {
+  border-color: var(--regie-wine);
+  background: var(--regie-wine);
+  color: var(--regie-ivory);
+}
+
+.regie-shell--subpage .question-editor-readonly {
+  border-left-color: var(--regie-gold);
+  background: rgb(201 154 58 / 8%);
+}
+
+.regie-shell--subpage .question-correct-choice:has(input:checked) {
+  border-color: var(--regie-green);
+  background: rgb(23 61 39 / 9%);
+  color: var(--regie-green);
+}
+
+.regie-shell--subpage :is(
+  .player-status-chip,
+  .admin-account-status,
+  .admin-accounts-identity > div span,
+  .reward-delivered
+) {
+  border-color: rgb(23 61 39 / 28%);
+  background: rgb(23 61 39 / 8%);
+  color: var(--regie-green);
+}
+
+.regie-shell--subpage :is(
+  .player-status-chip--disabled,
+  .admin-account-status--disabled
+) {
+  border-color: rgb(90 13 24 / 30%);
+  background: rgb(90 13 24 / 7%);
+  color: var(--regie-wine-soft);
+}
+
+.regie-shell--subpage .admin-accounts-count {
+  min-width: 7.5rem;
+  min-height: 5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-radius: 50%;
+  background: var(--regie-wine);
+  color: var(--regie-ivory);
+}
+
+.regie-shell--subpage .admin-accounts-count strong {
+  color: #e4b951;
+  font-size: 2rem;
+}
+
+.regie-shell--subpage :is(
+  .question-library-message,
+  .player-management-message,
+  .reward-management-message,
+  .admin-accounts-message
+) {
+  border-color: rgb(23 61 39 / 24%);
+  background: rgb(23 61 39 / 7%);
+  color: var(--regie-green);
+}
+
+.regie-shell--subpage :is(
+  .question-library-workspace,
+  .player-management-workspace,
+  .reward-management-grid,
+  .admin-accounts-grid
+) {
+  margin-top: 1.25rem;
+}
+
+.regie-shell--subpage :is(
+  .question-library-index h2,
+  .question-editor-heading h2,
+  .category-manager h2,
+  .programming-editor-heading h2,
+  .programming-section-heading h2,
+  .reward-panel-heading h2,
+  .admin-accounts-panel h2,
+  .player-detail-heading h2
+) {
+  color: var(--regie-wine);
+  font-size: clamp(1.65rem, 3vw, 2.4rem);
+  letter-spacing: -0.025em;
+}
+
+.regie-shell--subpage .category-manager {
+  margin-top: 1rem;
+}
+
+.regie-shell--subpage .player-adjustment-history strong {
+  color: var(--regie-green);
+}
+
+.regie-shell--subpage .player-adjustment-history strong.is-negative {
+  color: var(--regie-wine-soft);
+}
+
+.regie-page-heading h1 {
+  font-size: clamp(2.75rem, 5.5vw, 3.9rem);
+}
+
+.regie-shell--subpage :is(
+  .question-editor-empty button,
+  .category-manager-intro button,
+  .category-manager-form > button
+) {
+  border-color: var(--regie-green);
+  background: var(--regie-green);
+  color: var(--regie-ivory);
+}
+
+@media (max-width: 54rem) {
+  .regie-shell--subpage .admin-subpage-shell {
+    padding-top: 2rem;
+  }
+
+  .regie-shell--subpage :is(
+    .programming-hero h1,
+    .question-library-hero h1,
+    .player-management-hero h1,
+    .reward-management-hero h1,
+    .admin-accounts-hero h1
+  ) {
+    font-size: clamp(2.25rem, 8vw, 3rem);
+  }
+}
+
+@media (max-width: 40rem) {
+  .regie-shell--subpage .admin-context-note {
+    max-width: 100%;
+  }
+
+  .regie-shell--subpage .programming-event-actions {
+    justify-content: flex-start;
+  }
+
+  .regie-shell--subpage .admin-accounts-count {
+    min-width: 6.5rem;
+    min-height: 4.5rem;
+  }
+}
+
+/* TASK 22 — accueil public et connexion dans la même identité */
+.landing-page {
+  --landing-wine: #300309;
+  --landing-gold: #d6a532;
+  --landing-ivory: #f6f0e5;
+  place-items: stretch;
+  background: linear-gradient(90deg, var(--landing-wine) 0 62%, var(--landing-ivory) 62% 100%);
+}
+
+.landing-content {
+  width: min(100%, 82rem);
+  margin: 0 auto;
+  padding-right: clamp(1.5rem, 6vw, 6rem);
+  padding-left: clamp(1.5rem, 6vw, 6rem);
+}
+
+.landing-brand {
+  color: rgb(246 240 229 / 72%);
+}
+
+.landing-page .brand-mark {
+  border-color: rgb(214 165 50 / 72%);
+  color: var(--landing-gold);
+}
+
+.landing-title {
+  width: min(56%, 38rem);
+}
+
+.landing-title .eyebrow {
+  color: var(--landing-gold);
+}
+
+.landing-title h1 {
+  margin-top: 0.8rem;
+  color: var(--landing-ivory);
+  font-size: clamp(4rem, 9vw, 7rem);
+  line-height: 0.82;
+}
+
+.landing-title > p:last-child {
+  color: rgb(246 240 229 / 68%);
+}
+
+.landing-button {
+  width: fit-content;
+  min-width: 18rem;
+  padding: 0 1.5rem;
+  border-radius: 0.35rem;
+  background: var(--landing-gold);
+  color: var(--landing-wine);
+}
+
+.landing-footnote {
+  width: fit-content;
+  color: rgb(246 240 229 / 58%);
+  text-align: left;
+}
+
+.landing-river {
+  top: 10%;
+  right: 7vw;
+  width: min(26vw, 22rem);
+  height: auto;
+  aspect-ratio: 1;
+  border-color: rgb(48 3 9 / 18%);
+  border-radius: 50%;
+  transform: none;
+}
+
+.landing-river::before,
+.landing-river::after {
+  border-color: rgb(48 3 9 / 11%);
+  border-radius: 50%;
+}
+
+.landing-river::after {
+  background: radial-gradient(circle, var(--landing-gold) 0 18%, transparent 19%);
+}
+
+.admin-login-page {
+  --background: #f6f0e5;
+  --text-primary: #241f1c;
+  --text-secondary: #716a62;
+  --border: #dcd2c0;
+  --brand-accent: #c99a3a;
+  place-items: center;
+  background:
+    linear-gradient(90deg, #300309 0 40%, transparent 40%),
+    linear-gradient(rgb(48 3 9 / 2.5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(48 3 9 / 2.5%) 1px, transparent 1px),
+    #f6f0e5;
+  background-size: auto, 4.5rem 4.5rem, 4.5rem 4.5rem, auto;
+}
+
+.admin-login-card {
+  width: min(100%, 31rem);
+  margin-left: min(28vw, 23rem);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border-color: var(--border);
+  border-radius: 0.75rem;
+  background: rgb(255 253 248 / 94%);
+  color: var(--text-primary);
+  box-shadow: 0 2rem 6rem rgb(48 3 9 / 15%);
+}
+
+.admin-login-brand .brand-mark {
+  border-color: rgb(48 3 9 / 32%);
+  color: #300309;
+}
+
+.admin-login-brand strong {
+  color: #300309;
+}
+
+.admin-login-heading {
+  padding: 2.4rem 0 1.7rem;
+}
+
+.admin-login-heading h1 {
+  color: #300309;
+  font-size: clamp(2.7rem, 7vw, 4.25rem);
+}
+
+.admin-login-form input {
+  border-color: var(--border);
+  border-radius: 0.45rem;
+  background: #fff;
+  color: var(--text-primary);
+}
+
+.admin-login-form .primary-button {
+  border-radius: 0.4rem;
+  background: #173d27;
+  color: #f6f0e5;
+}
+
+.admin-login-orbit {
+  left: 8vw;
+  width: min(25vw, 20rem);
+  border-color: rgb(201 154 58 / 45%);
+  border-radius: 50%;
+}
+
+.admin-login-orbit::before,
+.admin-login-orbit::after {
+  border-color: rgb(246 240 229 / 12%);
+  border-radius: 50%;
+}
+
+/* Écrans joueur : bordeaux de régie, or de progression, ivoire de lecture */
+.player-page,
+.leaderboard-page {
+  --background: #300309;
+  --surface: #490711;
+  --surface-raised: #5b0d18;
+  --text-primary: #f6f0e5;
+  --text-secondary: #c7b7b2;
+  --brand-accent: #d6a532;
+  --border: rgb(246 240 229 / 18%);
+  background:
+    radial-gradient(circle at 100% 0, rgb(214 165 50 / 9%), transparent 22rem),
+    #300309;
+}
+
+.player-page .player-card {
+  border-color: rgb(214 165 50 / 24%);
+  background: rgb(73 7 17 / 96%);
+}
+
+.player-page :is(.lobby-panel, .question-panel),
+.leaderboard-page :is(.leaderboard-loading, .leaderboard-empty, .current-rank) {
+  border-color: rgb(246 240 229 / 18%);
+  background: rgb(73 7 17 / 94%);
+}
+
+.player-page :is(.registration-copy h1, .error-card h1, .lobby-panel h1, .question-panel > h1),
+.leaderboard-heading h1 {
+  font-size: clamp(2.35rem, 9vw, 3.45rem);
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.player-page .answer-option {
+  border-color: rgb(246 240 229 / 18%);
+  background: rgb(246 240 229 / 4%);
+}
+
+.player-page .answer-option--selected {
+  border-color: var(--brand-accent);
+  background: rgb(214 165 50 / 11%);
+}
+
+.player-page .answer-option--correct {
+  border-color: #70c191;
+  background: rgb(112 193 145 / 12%);
+}
+
+.player-page .answer-option--wrong {
+  border-color: #ee8379;
+  background: rgb(238 131 121 / 11%);
+}
+
+.player-page .primary-button {
+  border-radius: 0.45rem;
+  background: #d6a532;
+  color: #300309;
+}
+
+.leaderboard-page .leaderboard-scopes button[aria-pressed="true"] {
+  background: #f6f0e5;
+  color: #300309;
+}
+
+.leaderboard-page .leaderboard-position {
+  background: #300309;
+}
+
+@media (max-width: 40rem) {
+  .landing-page {
+    background: var(--landing-wine);
+  }
+
+  .landing-content {
+    padding-right: 1.5rem;
+    padding-left: 1.5rem;
+  }
+
+  .landing-title {
+    width: 100%;
+  }
+
+  .landing-title h1 {
+    font-size: clamp(3.8rem, 20vw, 5.5rem);
+  }
+
+  .landing-button,
+  .landing-footnote {
+    width: 100%;
+  }
+
+  .landing-footnote {
+    text-align: center;
+  }
+
+  .landing-river {
+    top: auto;
+    right: -4rem;
+    bottom: 12%;
+    width: 13rem;
+    border-color: rgb(201 154 58 / 17%);
+  }
+
+  .admin-login-page {
+    background: #f6f0e5;
+  }
+
+  .admin-login-card {
+    margin-left: 0;
+  }
+
+  .admin-login-orbit {
+    display: none;
+  }
+}

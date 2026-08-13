@@ -25,7 +25,7 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 19. TASK 19 — Mode de recette et cycle de vie réversible avant clôture
 20. TASK 20 — Gestion sécurisée des comptes administrateurs
 21. TASK 21 — Édition directe et suppression protégée des questions
-22. TASK 22 — Refonte de la vue de supervision de la régie
+22. TASK 22 — Refonte de l’identité visuelle et des écrans de régie
 
 ## État
 
@@ -50,6 +50,6 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 - TASK 19 : contexte `TEST` ou `PRODUCTION` distinct du cycle de vie, retour contrôlé vers `DRAFT`, clôture explicite `FINISHED` et suppression transactionnelle des joueurs de test terminés, fusionnés et déployés le 13 août 2026
 - TASK 20 : création, désactivation et réactivation des comptes administrateurs depuis la régie, avec révocation des sessions, protection du dernier compte actif et audit terminés, fusionnés et déployés le 13 août 2026
 - TASK 21 : remplacement des commandes de duplication et d’archivage exposées dans la régie par une édition directe avec annulation et une suppression protégée ; développement et validation locale terminés, validation PostgreSQL de la branche Neon de PR en attente
-- TASK 22 : refonte du dashboard `/admin` à partir de la direction artistique MESTE Mama Emma, sans modification des règles métier ni des commandes live ; développement, contrôle visuel responsive et validations locales terminés, PR en attente
+- TASK 22 : refonte du dashboard et des écrans `/admin/sessions`, `/admin/questions`, `/admin/players`, `/admin/rewards` et `/admin/accounts` à partir de la direction artistique MESTE Mama Emma ; création d’une navigation de régie partagée, harmonisation de l’accueil public, de la connexion et des écrans joueur, réduction de l’échelle des titres, sans modification des règles métier ni des commandes live ; validation locale terminée
 
 Le détail fonctionnel et les critères de recette restent définis dans `docs/cahier-des-charges-v1.md`.

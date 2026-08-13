@@ -31,7 +31,9 @@ describe("AdminAccountManagementView", () => {
       }),
     );
 
-    expect(html).toContain("Administrateurs");
+    expect(html).toContain("Accès administrateurs");
+    expect(html).toContain('aria-label="Navigation de la régie"');
+    expect(html).toContain('aria-current="page"');
     expect(html).toContain("Créer un compte");
     expect(html).toContain('autoComplete="new-password"');
     expect(html).toContain("Dernier compte actif protégé");

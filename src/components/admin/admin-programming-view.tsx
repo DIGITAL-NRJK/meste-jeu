@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { AdminRegieShell } from "@/components/admin/admin-regie-shell";
+
 import {
   localDateTimeToUtcIso,
   type TimeZoneOption,
@@ -465,22 +467,35 @@ export function AdminProgrammingView({
   }
 
   return (
-    <main className="admin-page programming-page">
-      <header className="admin-topbar">
-        <Link href="/admin" className="admin-wordmark admin-wordmark-link">
-          <span className="brand-mark" aria-hidden="true">M</span>
-          <span><strong>RÉGIE MESTE</strong><small>Programmation</small></span>
-        </Link>
-        <div className="admin-account">
-          <span>{admin.displayName}</span>
-          <button type="button" onClick={logout}>Se déconnecter</button>
-        </div>
-      </header>
-
-      <div className="programming-shell">
+    <AdminRegieShell
+      activePage="sessions"
+      admin={admin}
+      eventName={event?.name}
+      eventSlug={event?.slug}
+      onLogout={logout}
+      toolbar={events.length ? (
+        <label className="regie-event-select">
+          <span>Événement</span>
+          <select
+            value={event?.slug ?? ""}
+            onChange={(change) => {
+              router.push(`/admin/sessions?event=${encodeURIComponent(change.target.value)}`);
+            }}
+          >
+            {events.map((candidate) => (
+              <option key={candidate.id} value={candidate.slug}>
+                {candidate.environment === "TEST" ? "[TEST] " : ""}
+                {candidate.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : undefined}
+      toolbarLabel="Plan de passage"
+    >
+      <div className="programming-shell admin-subpage-shell">
         <section className="programming-hero">
           <div>
-            <Link href="/admin" className="question-library-back">← Retour à la régie</Link>
             <p className="eyebrow">Plan de passage</p>
             <h1>Le conducteur</h1>
             <p>Créez l’événement, ordonnez ses questions et verrouillez la session avant le direct.</p>
@@ -496,24 +511,7 @@ export function AdminProgrammingView({
         {message ? <p className="question-library-message" role="status">{message}</p> : null}
 
         <section className="programming-event-bar">
-          {events.length ? (
-            <label>
-              <span>Événement</span>
-              <select
-                value={event?.slug ?? ""}
-                onChange={(change) => {
-                  router.push(`/admin/sessions?event=${encodeURIComponent(change.target.value)}`);
-                }}
-              >
-                {events.map((candidate) => (
-                  <option key={candidate.id} value={candidate.slug}>
-                    {candidate.environment === "TEST" ? "[TEST] " : ""}
-                    {candidate.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : <strong>Aucun événement programmé</strong>}
+          {!events.length ? <strong>Aucun événement programmé</strong> : null}
           <div className="programming-event-actions">
             {event ? (
               <>
@@ -660,6 +658,6 @@ export function AdminProgrammingView({
           </>
         ) : null}
       </div>
-    </main>
+    </AdminRegieShell>
   );
 }

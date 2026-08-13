@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import type { AdminIdentity } from "@/server/services/admin-auth";
 
@@ -203,7 +203,8 @@ export function AdminQuestionLibraryView({
     blankQuestion(firstActiveCategory),
   );
   const [creatingQuestion, setCreatingQuestion] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState(false);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const questionTextRef = useRef<HTMLTextAreaElement>(null);
   const [editorSection, setEditorSection] =
     useState<QuestionEditorSection>("content");
   const [questionPending, setQuestionPending] = useState(false);
@@ -273,7 +274,7 @@ export function AdminQuestionLibraryView({
       setSelectedQuestion(payload.question);
       setQuestionForm(questionToForm(payload.question));
       setCreatingQuestion(false);
-      setEditingQuestion(false);
+      setEditingQuestionId(null);
       setEditorSection("content");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Question indisponible.");
@@ -286,7 +287,7 @@ export function AdminQuestionLibraryView({
     setSelectedQuestion(null);
     setQuestionForm(blankQuestion(categories.find((category) => category.active)?.id ?? ""));
     setCreatingQuestion(true);
-    setEditingQuestion(false);
+    setEditingQuestionId(null);
     setEditorSection("content");
     setMessage(null);
   }
@@ -309,7 +310,7 @@ export function AdminQuestionLibraryView({
       setSelectedQuestion(payload.question);
       setQuestionForm(questionToForm(payload.question));
       setCreatingQuestion(false);
-      setEditingQuestion(false);
+      setEditingQuestionId(null);
       await refreshQuestions();
       setMessage(selectedQuestion ? "Question mise à jour." : "Brouillon créé.");
     } catch (error) {
@@ -339,7 +340,7 @@ export function AdminQuestionLibraryView({
       const payload = (await response.json()) as { question: AdminQuestionDetailView };
       setSelectedQuestion(payload.question);
       setQuestionForm(questionToForm(payload.question));
-      setEditingQuestion(false);
+      setEditingQuestionId(null);
       await refreshQuestions();
       setMessage(`${actionLabels[action]} : terminé.`);
     } catch (error) {
@@ -351,8 +352,7 @@ export function AdminQuestionLibraryView({
 
   function startQuestionEdit() {
     if (!selectedQuestion || selectedQuestion.status === "ARCHIVED") return;
-    setQuestionForm(questionToForm(selectedQuestion));
-    setEditingQuestion(true);
+    setEditingQuestionId(selectedQuestion.id);
     setMessage(null);
   }
 
@@ -370,7 +370,7 @@ export function AdminQuestionLibraryView({
 
     if (!selectedQuestion) return;
     setQuestionForm(questionToForm(selectedQuestion));
-    setEditingQuestion(false);
+    setEditingQuestionId(null);
     setEditorSection("content");
     setMessage("Modifications annulées. La question reste inchangée.");
   }
@@ -398,7 +398,7 @@ export function AdminQuestionLibraryView({
         blankQuestion(categories.find((category) => category.active)?.id ?? ""),
       );
       setCreatingQuestion(false);
-      setEditingQuestion(false);
+      setEditingQuestionId(null);
       setEditorSection("content");
       await refreshQuestions();
       setMessage("Question supprimée. Le nombre de fiches a été mis à jour.");
@@ -489,8 +489,14 @@ export function AdminQuestionLibraryView({
     router.refresh();
   }
 
-  const editable = creatingQuestion || editingQuestion;
+  const editable =
+    creatingQuestion || selectedQuestion?.id === editingQuestionId;
   const hasEditor = creatingQuestion || selectedQuestion !== null;
+
+  useEffect(() => {
+    if (!editable) return;
+    questionTextRef.current?.focus();
+  }, [editable]);
 
   return (
     <main className="admin-page admin-library-page">
@@ -581,7 +587,12 @@ export function AdminQuestionLibraryView({
                 <button type="button" onClick={startNewQuestion}>Créer une question</button>
               </div>
             ) : (
-              <form onSubmit={saveQuestion} className="question-editor-form">
+              <form
+                key={`${selectedQuestion?.id ?? "new"}-${editable ? "edit" : "view"}`}
+                onSubmit={saveQuestion}
+                className="question-editor-form"
+                data-mode={editable ? "edit" : "view"}
+              >
                 <header className="question-editor-heading">
                   <div>
                     <p className="eyebrow">{creatingQuestion ? "Nouveau brouillon" : "Fiche question"}</p>
@@ -601,7 +612,7 @@ export function AdminQuestionLibraryView({
 
                 <fieldset id="question-editor-content" role="tabpanel" aria-labelledby="question-editor-content-tab" hidden={editorSection !== "content"} disabled={!editable || questionPending}>
                   <legend>Contenu</legend>
-                  <label className="question-editor-wide"><span>Question</span><textarea rows={3} required minLength={5} maxLength={500} value={questionForm.questionText} onChange={(event) => setQuestionForm({ ...questionForm, questionText: event.target.value })} /></label>
+                  <label className="question-editor-wide"><span>Question</span><textarea ref={questionTextRef} rows={3} required minLength={5} maxLength={500} value={questionForm.questionText} onChange={(event) => setQuestionForm({ ...questionForm, questionText: event.target.value })} /></label>
                   <label><span>Catégorie</span><select required value={questionForm.categoryId} onChange={(event) => setQuestionForm({ ...questionForm, categoryId: event.target.value })}>
                     <option value="">Choisir</option>
                     {categories.map((category) => <option key={category.id} value={category.id} disabled={!category.active}>{category.name}{category.active ? "" : " — inactive"}</option>)}
@@ -654,7 +665,7 @@ export function AdminQuestionLibraryView({
                     <button className="question-editor-save" type="submit" disabled={questionPending}>{questionPending ? "Enregistrement…" : selectedQuestion ? "Enregistrer les modifications" : "Créer le brouillon"}</button>
                     <button type="button" onClick={cancelQuestionEdit} disabled={questionPending}>Annuler</button>
                   </div> : selectedQuestion ? <div>
-                    {selectedQuestion.status !== "ARCHIVED" ? <button className="question-editor-save" type="button" onClick={startQuestionEdit} disabled={questionPending}>Modifier</button> : null}
+                    {selectedQuestion.status !== "ARCHIVED" ? <button className="question-editor-save" type="button" onClick={startQuestionEdit} aria-pressed={editable} disabled={questionPending}>Modifier</button> : null}
                     {selectedQuestion.status === "DRAFT" ? <button type="button" onClick={() => void runQuestionAction("SUBMIT_FOR_REVIEW")} disabled={questionPending}>Soumettre en revue</button> : null}
                     {selectedQuestion.status === "REVIEW" ? <button type="button" className="question-editor-validate" onClick={() => void runQuestionAction("VALIDATE")} disabled={questionPending}>Valider</button> : null}
                     <button type="button" className="question-editor-delete" onClick={() => void removeQuestion()} disabled={questionPending}>Supprimer</button>

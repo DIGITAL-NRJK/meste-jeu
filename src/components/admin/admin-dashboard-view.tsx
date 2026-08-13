@@ -495,10 +495,10 @@ export function AdminDashboardView({
                     <p className="eyebrow">Traçabilité</p>
                     <h2>Journal administrateur</h2>
                   </div>
-                  <span className="admin-panel-index">30</span>
+                  <span className="admin-panel-index">{auditLogs.length}</span>
                 </div>
                 {auditLogs.length ? (
-                  <ol className="admin-audit-list">
+                  <ol className="admin-audit-list" aria-label="Journal des dernières actions administratives">
                     {auditLogs.map((entry) => (
                       <li key={entry.id}>
                         <span className="admin-audit-marker" aria-hidden="true" />

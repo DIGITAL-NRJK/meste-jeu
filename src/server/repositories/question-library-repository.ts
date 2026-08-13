@@ -372,7 +372,7 @@ async function updateQuestion(
             )`,
             sql`(
               ${questions.status} = 'DRAFT'
-              OR ${isComplete} = true
+              OR ${isComplete}::boolean = true
             )`,
             sql`(
               ${questions.status} <> 'VALIDATED'
@@ -401,7 +401,7 @@ async function updateQuestion(
           'question',
           question.id,
           jsonb_build_object(
-            'mutationId', ${mutationId},
+            'mutationId', ${mutationId}::text,
             'status', question.status::text
           ),
           ${input.now}
@@ -420,7 +420,7 @@ async function updateQuestion(
                 OR session.status <> 'DRAFT'
               )
           )
-          AND (question.status = 'DRAFT' OR ${isComplete} = true)
+          AND (question.status = 'DRAFT' OR ${isComplete}::boolean = true)
           AND (
             question.status <> 'VALIDATED'
             OR EXISTS (
@@ -440,7 +440,7 @@ async function updateQuestion(
             FROM ${auditLogs}
             WHERE entity_type = 'question'
               AND entity_id = ${questionId}::uuid
-              AND metadata ->> 'mutationId' = ${mutationId}
+              AND metadata ->> 'mutationId' = ${mutationId}::text
           )
       `),
       db.execute(sql`
@@ -466,7 +466,7 @@ async function updateQuestion(
           FROM ${auditLogs}
           WHERE entity_type = 'question'
             AND entity_id = ${questionId}::uuid
-            AND metadata ->> 'mutationId' = ${mutationId}
+            AND metadata ->> 'mutationId' = ${mutationId}::text
         )
         ON CONFLICT (question_id, position) DO UPDATE SET
           label = EXCLUDED.label,
@@ -482,7 +482,7 @@ async function updateQuestion(
             FROM ${auditLogs}
             WHERE entity_type = 'question'
               AND entity_id = ${questionId}::uuid
-              AND metadata ->> 'mutationId' = ${mutationId}
+              AND metadata ->> 'mutationId' = ${mutationId}::text
           )
       `),
       db.execute(sql`
@@ -493,7 +493,7 @@ async function updateQuestion(
             FROM ${auditLogs}
             WHERE entity_type = 'question'
               AND entity_id = ${questionId}::uuid
-              AND metadata ->> 'mutationId' = ${mutationId}
+              AND metadata ->> 'mutationId' = ${mutationId}::text
           )
       `),
       db.execute(sql`
@@ -528,7 +528,7 @@ async function updateQuestion(
           FROM ${auditLogs}
           WHERE entity_type = 'question'
             AND entity_id = ${questionId}::uuid
-            AND metadata ->> 'mutationId' = ${mutationId}
+            AND metadata ->> 'mutationId' = ${mutationId}::text
         )
       `),
     ]);
@@ -637,7 +637,7 @@ async function deleteQuestion(
           state.id,
           jsonb_build_object(
             'operation', 'DELETED',
-            'mutationId', ${mutationId},
+            'mutationId', ${mutationId}::text,
             'previousStatus', state.status,
             'removedFromSessions', (
               SELECT count(*)
@@ -672,7 +672,7 @@ async function deleteQuestion(
           FROM ${auditLogs} AS log
           WHERE log.entity_type = 'question'
             AND log.entity_id = ${questionId}::uuid
-            AND log.metadata ->> 'mutationId' = ${mutationId}
+            AND log.metadata ->> 'mutationId' = ${mutationId}::text
         )
     `),
     db.execute(sql`
@@ -683,7 +683,7 @@ async function deleteQuestion(
           FROM ${auditLogs} AS log
           WHERE log.entity_type = 'question'
             AND log.entity_id = ${questionId}::uuid
-            AND log.metadata ->> 'mutationId' = ${mutationId}
+            AND log.metadata ->> 'mutationId' = ${mutationId}::text
         )
     `),
     db.execute(sql`
@@ -694,7 +694,7 @@ async function deleteQuestion(
           FROM ${auditLogs} AS log
           WHERE log.entity_type = 'question'
             AND log.entity_id = ${questionId}::uuid
-            AND log.metadata ->> 'mutationId' = ${mutationId}
+            AND log.metadata ->> 'mutationId' = ${mutationId}::text
         )
     `),
     db.execute(sql`
@@ -705,7 +705,7 @@ async function deleteQuestion(
           FROM ${auditLogs} AS log
           WHERE log.entity_type = 'question'
             AND log.entity_id = ${questionId}::uuid
-            AND log.metadata ->> 'mutationId' = ${mutationId}
+            AND log.metadata ->> 'mutationId' = ${mutationId}::text
         )
     `),
     db.execute(sql`
@@ -723,7 +723,7 @@ async function deleteQuestion(
           AND log.entity_id = ${questionId}::uuid
           AND log.action = 'QUESTION_UPDATED'
           AND log.metadata ->> 'operation' = 'DELETED'
-          AND log.metadata ->> 'mutationId' = ${mutationId}
+          AND log.metadata ->> 'mutationId' = ${mutationId}::text
       )
     `),
     db.execute(sql`
@@ -740,7 +740,7 @@ async function deleteQuestion(
           FROM ${auditLogs} AS log
           WHERE log.entity_type = 'question'
             AND log.entity_id = ${questionId}::uuid
-            AND log.metadata ->> 'mutationId' = ${mutationId}
+            AND log.metadata ->> 'mutationId' = ${mutationId}::text
         )
       )
       UPDATE ${sessionQuestions} AS occurrence

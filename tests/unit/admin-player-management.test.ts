@@ -5,6 +5,8 @@ import {
   AdminPlayerEventNotFoundError,
   AdminPlayerInputError,
   AdminPlayerNotFoundError,
+  AdminPlayerSessionNotFoundError,
+  adjustAdminPlayerScore,
   disableAdminPlayer,
   getAdminPlayer,
   getAdminPlayerManagement,
@@ -20,6 +22,8 @@ const event = {
 };
 const playerId = "00000000-0000-4000-8000-000000000002";
 const adminId = "00000000-0000-4000-8000-000000000003";
+const sessionId = "00000000-0000-4000-8000-000000000004";
+const scoreEventId = "00000000-0000-4000-8000-000000000005";
 const now = new Date("2026-08-13T12:00:00.000Z");
 const player: AdminPlayerDetail = {
   id: playerId,
@@ -33,6 +37,17 @@ const player: AdminPlayerDetail = {
   createdAt: now,
   lastSeenAt: now,
   answers: [],
+  scoreSessions: [
+    {
+      id: sessionId,
+      name: "Session générale",
+      mode: "LIVE",
+      status: "READY",
+      resetScore: false,
+      points: 250,
+    },
+  ],
+  scoreAdjustments: [],
 };
 
 function repository(
@@ -43,6 +58,7 @@ function repository(
     listPlayers: vi.fn(async () => [player]),
     getPlayer: vi.fn(async () => player),
     disablePlayer: vi.fn(async () => "disabled" as const),
+    appendScoreAdjustment: vi.fn(async () => "created" as const),
     ...overrides,
   };
 }
@@ -121,5 +137,80 @@ describe("admin player management service", () => {
         }),
       }),
     ).rejects.toBeInstanceOf(AdminPlayerAlreadyDisabledError);
+  });
+
+  it.each([50, -50])(
+    "ajoute un ajustement signé de %i points sans écraser le score",
+    async (points) => {
+      const playerRepository = repository({
+        getPlayer: vi.fn(async () => ({
+          ...player,
+          totalPoints: player.totalPoints + points,
+        })),
+      });
+
+      await expect(
+        adjustAdminPlayerScore(
+          playerId,
+          {
+            action: "ADJUST_SCORE",
+            quizSessionId: sessionId,
+            points,
+            reason: "Correction validée après vérification",
+          },
+          adminId,
+          {
+            repository: playerRepository,
+            createId: () => scoreEventId,
+            now: () => now,
+          },
+        ),
+      ).resolves.toMatchObject({ totalPoints: 250 + points });
+      expect(playerRepository.appendScoreAdjustment).toHaveBeenCalledWith({
+        scoreEventId,
+        playerId,
+        quizSessionId: sessionId,
+        points,
+        reason: "Correction validée après vérification",
+        actorAdminId: adminId,
+        now,
+      });
+    },
+  );
+
+  it("refuse zéro, un motif imprécis et une session étrangère", async () => {
+    const playerRepository = repository();
+    await expect(
+      adjustAdminPlayerScore(
+        playerId,
+        {
+          action: "ADJUST_SCORE",
+          quizSessionId: sessionId,
+          points: 0,
+          reason: "Non",
+        },
+        adminId,
+        { repository: playerRepository },
+      ),
+    ).rejects.toBeInstanceOf(AdminPlayerInputError);
+    expect(playerRepository.appendScoreAdjustment).not.toHaveBeenCalled();
+
+    await expect(
+      adjustAdminPlayerScore(
+        playerId,
+        {
+          action: "ADJUST_SCORE",
+          quizSessionId: sessionId,
+          points: 25,
+          reason: "Correction validée après vérification",
+        },
+        adminId,
+        {
+          repository: repository({
+            appendScoreAdjustment: vi.fn(async () => "session_not_found" as const),
+          }),
+        },
+      ),
+    ).rejects.toBeInstanceOf(AdminPlayerSessionNotFoundError);
   });
 });

@@ -3,6 +3,7 @@ import "server-only";
 import { sql } from "drizzle-orm";
 
 import {
+  adminUsers,
   answers,
   auditLogs,
   events,
@@ -21,8 +22,12 @@ import type {
   AdminPlayerEvent,
   AdminPlayerFilters,
   AdminPlayerManagementRepository,
+  AdminPlayerScoreAdjustment,
+  AdminPlayerScoreSession,
   AdminPlayerSummary,
+  AppendScoreAdjustmentOutcome,
   DisablePlayerOutcome,
+  PersistScoreAdjustment,
 } from "@/server/services/admin-player-management";
 
 async function listEvents(): Promise<AdminPlayerEvent[]> {
@@ -90,7 +95,10 @@ async function listPlayers(
   return [...result.rows];
 }
 
-type PlayerDetailRow = Omit<AdminPlayerDetail, "event" | "answers"> & {
+type PlayerDetailRow = Omit<
+  AdminPlayerDetail,
+  "event" | "answers" | "scoreSessions" | "scoreAdjustments"
+> & {
   eventId: string;
   eventSlug: string;
   eventName: string;
@@ -99,66 +107,113 @@ type PlayerDetailRow = Omit<AdminPlayerDetail, "event" | "answers"> & {
 
 async function getPlayer(playerId: string): Promise<AdminPlayerDetail | null> {
   const db = getDb();
-  const [playerResult, answerResult] = await db.batch([
-    db.execute<PlayerDetailRow>(sql`
-      SELECT
-        player.id,
-        player.public_code AS "publicCode",
-        player.nickname,
-        player.status::text AS status,
-        player.current_streak AS "currentStreak",
-        COALESCE((
-          SELECT sum(score.points)::integer
-          FROM ${scoreEvents} AS score
-          INNER JOIN ${quizSessions} AS scored_session
-            ON scored_session.id = score.quiz_session_id
-          WHERE score.player_id = player.id
-            AND scored_session.event_id = player.event_id
-            AND score.voided_at IS NULL
-        ), 0)::integer AS "totalPoints",
-        (
-          SELECT count(*)::integer
-          FROM ${answers} AS answer
-          WHERE answer.player_id = player.id
-        ) AS "answerCount",
-        player.created_at AS "createdAt",
-        player.last_seen_at AS "lastSeenAt",
-        event.id AS "eventId",
-        event.slug AS "eventSlug",
-        event.name AS "eventName",
-        event.status::text AS "eventStatus"
-      FROM ${players} AS player
-      INNER JOIN ${events} AS event ON event.id = player.event_id
-      WHERE player.id = ${playerId}::uuid
-      LIMIT 1
-    `),
-    db.execute<AdminPlayerAnswer>(sql`
-      SELECT
-        answer.id,
-        session.name AS "sessionName",
-        occurrence.position AS "questionPosition",
-        question.question_text AS "questionText",
-        selected_option.label AS "selectedOptionLabel",
-        selected_option.text AS "selectedOptionText",
-        CASE
-          WHEN occurrence.status = 'REVEALED' THEN answer.is_correct
-          ELSE NULL
-        END AS "isCorrect",
-        answer.response_time_ms AS "responseTimeMs",
-        answer.received_at AS "receivedAt",
-        occurrence.status::text AS "questionStatus"
-      FROM ${answers} AS answer
-      INNER JOIN ${sessionQuestions} AS occurrence
-        ON occurrence.id = answer.session_question_id
-      INNER JOIN ${quizSessions} AS session
-        ON session.id = occurrence.quiz_session_id
-      INNER JOIN ${questions} AS question ON question.id = occurrence.question_id
-      INNER JOIN ${questionOptions} AS selected_option
-        ON selected_option.id = answer.question_option_id
-      WHERE answer.player_id = ${playerId}::uuid
-      ORDER BY answer.received_at DESC, answer.id DESC
-    `),
-  ]);
+  const [playerResult, answerResult, scoreSessionResult, adjustmentResult] =
+    await db.batch([
+      db.execute<PlayerDetailRow>(sql`
+        SELECT
+          player.id,
+          player.public_code AS "publicCode",
+          player.nickname,
+          player.status::text AS status,
+          player.current_streak AS "currentStreak",
+          COALESCE((
+            SELECT sum(score.points)::integer
+            FROM ${scoreEvents} AS score
+            INNER JOIN ${quizSessions} AS scored_session
+              ON scored_session.id = score.quiz_session_id
+            WHERE score.player_id = player.id
+              AND scored_session.event_id = player.event_id
+              AND score.voided_at IS NULL
+          ), 0)::integer AS "totalPoints",
+          (
+            SELECT count(*)::integer
+            FROM ${answers} AS answer
+            WHERE answer.player_id = player.id
+          ) AS "answerCount",
+          player.created_at AS "createdAt",
+          player.last_seen_at AS "lastSeenAt",
+          event.id AS "eventId",
+          event.slug AS "eventSlug",
+          event.name AS "eventName",
+          event.status::text AS "eventStatus"
+        FROM ${players} AS player
+        INNER JOIN ${events} AS event ON event.id = player.event_id
+        WHERE player.id = ${playerId}::uuid
+        LIMIT 1
+      `),
+      db.execute<AdminPlayerAnswer>(sql`
+        SELECT
+          answer.id,
+          session.name AS "sessionName",
+          occurrence.position AS "questionPosition",
+          question.question_text AS "questionText",
+          selected_option.label AS "selectedOptionLabel",
+          selected_option.text AS "selectedOptionText",
+          CASE
+            WHEN occurrence.status = 'REVEALED' THEN answer.is_correct
+            ELSE NULL
+          END AS "isCorrect",
+          answer.response_time_ms AS "responseTimeMs",
+          answer.received_at AS "receivedAt",
+          occurrence.status::text AS "questionStatus"
+        FROM ${answers} AS answer
+        INNER JOIN ${sessionQuestions} AS occurrence
+          ON occurrence.id = answer.session_question_id
+        INNER JOIN ${quizSessions} AS session
+          ON session.id = occurrence.quiz_session_id
+        INNER JOIN ${questions} AS question ON question.id = occurrence.question_id
+        INNER JOIN ${questionOptions} AS selected_option
+          ON selected_option.id = answer.question_option_id
+        WHERE answer.player_id = ${playerId}::uuid
+        ORDER BY answer.received_at DESC, answer.id DESC
+      `),
+      db.execute<AdminPlayerScoreSession>(sql`
+        SELECT
+          session.id,
+          session.name,
+          session.mode::text AS mode,
+          session.status::text AS status,
+          session.reset_score AS "resetScore",
+          COALESCE((
+            SELECT sum(score.points)::integer
+            FROM ${scoreEvents} AS score
+            WHERE score.player_id = ${playerId}::uuid
+              AND score.quiz_session_id = session.id
+              AND score.voided_at IS NULL
+          ), 0)::integer AS points
+        FROM ${quizSessions} AS session
+        INNER JOIN ${players} AS player ON player.event_id = session.event_id
+        WHERE player.id = ${playerId}::uuid
+        ORDER BY
+          CASE session.status::text
+            WHEN 'LIVE' THEN 0
+            WHEN 'READY' THEN 1
+            WHEN 'FINISHED' THEN 2
+            WHEN 'DRAFT' THEN 3
+            ELSE 4
+          END,
+          session.starts_at DESC NULLS LAST,
+          session.created_at DESC
+      `),
+      db.execute<AdminPlayerScoreAdjustment>(sql`
+        SELECT
+          adjustment.id,
+          adjustment.quiz_session_id AS "quizSessionId",
+          session.name AS "sessionName",
+          adjustment.points,
+          COALESCE(adjustment.metadata->>'reason', 'Motif non renseigné') AS reason,
+          admin.display_name AS "adminDisplayName",
+          adjustment.created_at AS "createdAt"
+        FROM ${scoreEvents} AS adjustment
+        INNER JOIN ${quizSessions} AS session
+          ON session.id = adjustment.quiz_session_id
+        INNER JOIN ${adminUsers} AS admin
+          ON admin.id = adjustment.created_by_admin_id
+        WHERE adjustment.player_id = ${playerId}::uuid
+          AND adjustment.type = 'ADMIN_ADJUSTMENT'
+        ORDER BY adjustment.created_at DESC, adjustment.id DESC
+      `),
+    ]);
 
   const player = playerResult.rows[0];
   if (!player) return null;
@@ -180,6 +235,8 @@ async function getPlayer(playerId: string): Promise<AdminPlayerDetail | null> {
       status: player.eventStatus,
     },
     answers: [...answerResult.rows],
+    scoreSessions: [...scoreSessionResult.rows],
+    scoreAdjustments: [...adjustmentResult.rows],
   };
 }
 
@@ -244,9 +301,91 @@ async function disablePlayer(input: {
   return "not_found";
 }
 
+type AppendScoreAdjustmentRow = {
+  outcome: "CREATED" | "PLAYER_NOT_FOUND" | "SESSION_NOT_FOUND";
+};
+
+async function appendScoreAdjustment(
+  input: PersistScoreAdjustment,
+): Promise<AppendScoreAdjustmentOutcome> {
+  const result = await getDb().execute<AppendScoreAdjustmentRow>(sql`
+    WITH candidate_player AS (
+      SELECT player.id, player.event_id
+      FROM ${players} AS player
+      WHERE player.id = ${input.playerId}::uuid
+    ), eligible AS (
+      SELECT
+        candidate_player.id AS player_id,
+        candidate_player.event_id,
+        session.id AS quiz_session_id
+      FROM candidate_player
+      INNER JOIN ${quizSessions} AS session
+        ON session.id = ${input.quizSessionId}::uuid
+        AND session.event_id = candidate_player.event_id
+        AND session.status <> 'CANCELED'
+    ), inserted AS (
+      INSERT INTO ${scoreEvents} (
+        id,
+        player_id,
+        quiz_session_id,
+        type,
+        points,
+        metadata,
+        created_at,
+        created_by_admin_id
+      )
+      SELECT
+        ${input.scoreEventId}::uuid,
+        eligible.player_id,
+        eligible.quiz_session_id,
+        'ADMIN_ADJUSTMENT',
+        ${input.points}::integer,
+        jsonb_build_object('reason', ${input.reason}::text),
+        ${input.now},
+        ${input.actorAdminId}::uuid
+      FROM eligible
+      RETURNING id, player_id, quiz_session_id
+    ), audit AS (
+      INSERT INTO ${auditLogs} (
+        admin_user_id,
+        action,
+        entity_type,
+        entity_id,
+        metadata,
+        created_at
+      )
+      SELECT
+        ${input.actorAdminId}::uuid,
+        'SCORE_ADJUSTED',
+        'score_event',
+        inserted.id,
+        jsonb_build_object(
+          'playerId', inserted.player_id,
+          'quizSessionId', inserted.quiz_session_id,
+          'points', ${input.points}::integer,
+          'reason', ${input.reason}::text
+        ),
+        ${input.now}
+      FROM inserted
+      RETURNING id
+    )
+    SELECT CASE
+      WHEN NOT EXISTS (SELECT 1 FROM candidate_player) THEN 'PLAYER_NOT_FOUND'
+      WHEN NOT EXISTS (SELECT 1 FROM eligible) THEN 'SESSION_NOT_FOUND'
+      ELSE 'CREATED'
+    END::text AS outcome
+  `);
+
+  const outcome = result.rows[0]?.outcome;
+  if (outcome === "CREATED") return "created";
+  if (outcome === "SESSION_NOT_FOUND") return "session_not_found";
+  return "player_not_found";
+}
+
 export const postgresAdminPlayerManagementRepository: AdminPlayerManagementRepository = {
   listEvents,
   listPlayers,
   getPlayer,
   disablePlayer,
+  appendScoreAdjustment,
 };

@@ -11,6 +11,7 @@ import {
 import { postgresAdminPlayerManagementRepository } from "@/server/repositories/admin-player-management-repository";
 import {
   AdminPlayerInputError,
+  adjustAdminPlayerScore,
   disableAdminPlayer,
 } from "@/server/services/admin-player-management";
 
@@ -29,18 +30,23 @@ export async function POST(
   if (!parsed.ok) return parsed.response;
 
   try {
-    if (
-      !parsed.body ||
-      typeof parsed.body !== "object" ||
-      (parsed.body as { action?: unknown }).action !== "DISABLE"
-    ) {
+    if (!parsed.body || typeof parsed.body !== "object") {
       throw new AdminPlayerInputError();
     }
 
     const { id } = await context.params;
-    const player = await disableAdminPlayer(id, admin.id, {
+    const action = (parsed.body as { action?: unknown }).action;
+    const dependencies = {
       repository: postgresAdminPlayerManagementRepository,
-    });
+    };
+    const player =
+      action === "DISABLE"
+        ? await disableAdminPlayer(id, admin.id, dependencies)
+        : action === "ADJUST_SCORE"
+          ? await adjustAdminPlayerScore(id, parsed.body, admin.id, dependencies)
+          : null;
+
+    if (!player) throw new AdminPlayerInputError();
 
     return NextResponse.json({ player }, { headers: adminPlayerHeaders });
   } catch (error) {

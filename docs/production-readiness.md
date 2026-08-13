@@ -15,7 +15,7 @@ La fiabilité du moteur, du scoring, du temps serveur, de l’inscription, du cl
 - [x] Raccorder à `/admin` la création, l’édition, la duplication, la validation et l’archivage des questions et catégories.
 - [x] Raccorder à `/admin` la création des événements et sessions, la configuration de leur ordre de questions et l’ouverture des inscriptions.
 - [x] Ajouter la recherche, la consultation et la désactivation d’un joueur.
-- [ ] Ajouter les ajustements de score `ADMIN_ADJUSTMENT` avec motif et audit.
+- [x] Ajouter les ajustements de score `ADMIN_ADJUSTMENT` avec motif et audit.
 - [ ] Raccorder la gestion et l’attribution des récompenses.
 - [ ] Produire puis tester un QR code vers l’URL joueur définitive.
 
@@ -25,7 +25,9 @@ TASK 13 raccorde la bibliothèque à `/admin/questions` avec recherche, filtres,
 
 TASK 14 ajoute `/admin/sessions` pour créer un événement, créer ses sessions, composer le conducteur ordonné à partir des seules questions validées, fixer chaque durée et verrouiller une session en `READY`. L’ouverture des inscriptions fait passer l’événement de `DRAFT` à `READY` uniquement si une session est elle-même prête. Elle est fusionnée et déployée depuis le 13 août 2026.
 
-TASK 15 ajoute `/admin/players` pour rechercher un joueur par pseudo ou code public, filtrer son statut, consulter son score calculé depuis le ledger et ses réponses, puis le désactiver. La désactivation révoque ses sessions actives dans la même opération et produit un audit `PLAYER_DISABLED`. Le résultat d’une réponse reste masqué tant que la question n’est pas `REVEALED`. La validation PostgreSQL doit être effectuée sur la branche Neon éphémère de la PR avant fusion.
+TASK 15 ajoute `/admin/players` pour rechercher un joueur par pseudo ou code public, filtrer son statut, consulter son score calculé depuis le ledger et ses réponses, puis le désactiver. La désactivation révoque ses sessions actives dans la même opération et produit un audit `PLAYER_DISABLED`. Le résultat d’une réponse reste masqué tant que la question n’est pas `REVEALED`. Elle est fusionnée et déployée depuis le 13 août 2026.
+
+TASK 16 complète la fiche joueur avec un ajustement de score exceptionnel rattaché à une session. Un entier positif ou négatif et un motif sont obligatoires, une confirmation précède l’écriture, puis le serveur ajoute atomiquement un événement `ADMIN_ADJUSTMENT` et un audit `SCORE_ADJUSTED`. Le score existant n’est jamais écrasé. La validation PostgreSQL du ledger, du classement recalculé et de l’audit doit être effectuée sur la branche Neon éphémère de la PR avant fusion.
 
 Le seed éditorial du 66e anniversaire prépare 5 catégories, 50 questions sourcées et 6 sessions en brouillon dans le fuseau `Africa/Accra`. Sa procédure sécurisée est documentée dans `docs/seed-independence-66.md`. Il a été validé sur la branche Neon éphémère puis appliqué sur Neon production après création d’un point de restauration et confirmation explicite de l’opérateur.
 
@@ -60,6 +62,7 @@ Tester au minimum sur un iPhone et un Android réels, dont un écran proche de 3
 - [ ] créer un événement et une session depuis `/admin/sessions`, enregistrer l’ordre, rendre la session prête puis ouvrir les inscriptions ;
 - [ ] rechercher un joueur par pseudo puis par code public dans `/admin/players` et vérifier son score ainsi que son historique ;
 - [ ] désactiver un joueur de recette, vérifier son audit `PLAYER_DISABLED`, puis confirmer que sa session existante ne donne plus accès au jeu ;
+- [ ] appliquer `+50`, puis `-50` au même joueur avec deux motifs distincts et vérifier le score, le classement, l’historique et les audits `SCORE_ADJUSTED` ;
 - [ ] couper puis rétablir le réseau sur un téléphone pendant une question ;
 - [ ] télécharger et ouvrir les trois CSV dans Excel et Google Sheets ;
 - [ ] vérifier la navigation clavier de la connexion admin et des réponses joueur ;

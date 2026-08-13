@@ -10,6 +10,7 @@ import {
   AdminPlayerEventNotFoundError,
   AdminPlayerInputError,
   AdminPlayerNotFoundError,
+  AdminPlayerSessionNotFoundError,
 } from "@/server/services/admin-player-management";
 
 export const adminPlayerHeaders = { "Cache-Control": "no-store" };
@@ -64,6 +65,18 @@ export function adminPlayerErrorResponse(error: unknown) {
   if (error instanceof AdminPlayerNotFoundError) {
     return NextResponse.json(
       { error: { code: "PLAYER_NOT_FOUND", message: "Joueur introuvable." } },
+      { status: 404, headers: adminPlayerHeaders },
+    );
+  }
+
+  if (error instanceof AdminPlayerSessionNotFoundError) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "SCORE_SESSION_NOT_FOUND",
+          message: "La session choisie n’appartient pas à l’événement du joueur.",
+        },
+      },
       { status: 404, headers: adminPlayerHeaders },
     );
   }

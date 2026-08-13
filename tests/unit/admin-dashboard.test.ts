@@ -12,12 +12,14 @@ const firstEvent = {
   id: "00000000-0000-4000-8000-000000000001",
   slug: "heritage-congo-2026",
   name: "Héritage Congo 2026",
+  environment: "PRODUCTION" as const,
   status: "LIVE" as const,
 };
 const secondEvent = {
   id: "00000000-0000-4000-8000-000000000002",
   slug: "autre-evenement",
   name: "Autre événement",
+  environment: "TEST" as const,
   status: "READY" as const,
 };
 

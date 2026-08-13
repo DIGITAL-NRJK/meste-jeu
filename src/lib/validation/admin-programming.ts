@@ -26,6 +26,7 @@ export const eventInputSchema = z
       .min(1)
       .max(100)
       .refine(isValidTimeZone, "Le fuseau horaire est invalide."),
+    environment: z.enum(["TEST", "PRODUCTION"]).default("PRODUCTION"),
   })
   .superRefine((event, context) => {
     if (event.endsAt <= event.startsAt) {
@@ -38,7 +39,7 @@ export const eventInputSchema = z
   });
 
 export const eventActionSchema = z.object({
-  action: z.literal("MARK_READY"),
+  action: z.enum(["MARK_READY", "RESET_DRAFT", "FINISH"]),
 });
 
 export type EventInput = z.infer<typeof eventInputSchema>;

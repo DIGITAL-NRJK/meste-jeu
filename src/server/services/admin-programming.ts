@@ -15,6 +15,8 @@ export type EventStatus =
   | "FINISHED"
   | "CANCELED";
 
+export type EventEnvironment = "TEST" | "PRODUCTION";
+
 export type AdminEventDetail = {
   id: string;
   slug: string;
@@ -23,6 +25,7 @@ export type AdminEventDetail = {
   startsAt: Date;
   endsAt: Date;
   timezone: string;
+  environment: EventEnvironment;
   status: EventStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -34,18 +37,44 @@ export type PersistEvent = EventInput & {
   now: Date;
 };
 
+export type UpdateEvent = EventInput & {
+  id: string;
+  actorAdminId: string;
+  now: Date;
+};
+
 export type EventReadyOutcome =
   | "transitioned"
   | "not_found"
   | "invalid_status"
   | "no_ready_session";
 
+export type EventMutationOutcome =
+  | "transitioned"
+  | "not_found"
+  | "invalid_status";
+
+export type EventFinishOutcome = EventMutationOutcome | "active_session";
+
+export type EventUpdateOutcome = "updated" | "not_found" | "invalid_status";
+
 export interface AdminProgrammingRepository {
   createEvent(input: PersistEvent): Promise<AdminEventDetail>;
+  updateEvent(input: UpdateEvent): Promise<EventUpdateOutcome>;
   listEvents(): Promise<AdminEventDetail[]>;
   listSessions(eventId: string): Promise<QuizSessionDetail[]>;
   getEvent(eventId: string): Promise<AdminEventDetail | null>;
   markEventReady(eventId: string, now: Date): Promise<EventReadyOutcome>;
+  resetEventToDraft(input: {
+    eventId: string;
+    actorAdminId: string;
+    now: Date;
+  }): Promise<EventMutationOutcome>;
+  finishEvent(input: {
+    eventId: string;
+    actorAdminId: string;
+    now: Date;
+  }): Promise<EventFinishOutcome>;
 }
 
 export type AdminProgramming = {
@@ -86,6 +115,13 @@ export class EventNotReadyError extends Error {
   constructor() {
     super("Event has no ready quiz session");
     this.name = "EventNotReadyError";
+  }
+}
+
+export class EventHasActiveSessionError extends Error {
+  constructor() {
+    super("Event has an active quiz session");
+    this.name = "EventHasActiveSessionError";
   }
 }
 
@@ -149,6 +185,42 @@ export async function createEvent(
 
     throw error;
   }
+}
+
+export async function updateEvent(
+  eventId: string,
+  input: unknown,
+  actorAdminId: string,
+  dependencies: {
+    repository: AdminProgrammingRepository;
+    now?: () => Date;
+  },
+): Promise<AdminEventDetail> {
+  const identifiers = z
+    .object({ eventId: z.uuid(), actorAdminId: z.uuid() })
+    .safeParse({ eventId, actorAdminId });
+  const event = eventInputSchema.safeParse(input);
+
+  if (!identifiers.success || !event.success) {
+    throw new AdminProgrammingInputError([
+      ...(identifiers.success ? [] : identifiers.error.issues),
+      ...(event.success ? [] : event.error.issues),
+    ]);
+  }
+
+  const outcome = await dependencies.repository.updateEvent({
+    id: identifiers.data.eventId,
+    actorAdminId: identifiers.data.actorAdminId,
+    ...event.data,
+    now: dependencies.now?.() ?? new Date(),
+  });
+
+  if (outcome === "not_found") throw new EventNotFoundError();
+  if (outcome === "invalid_status") throw new EventInvalidStatusError();
+
+  const updated = await dependencies.repository.getEvent(identifiers.data.eventId);
+  if (!updated) throw new EventNotFoundError();
+  return updated;
 }
 
 export async function getAdminProgramming(
@@ -216,4 +288,60 @@ export async function markEventReady(
   }
 
   return event;
+}
+
+async function runEventTransition(
+  eventId: string,
+  actorAdminId: string,
+  dependencies: {
+    repository: AdminProgrammingRepository;
+    now?: () => Date;
+  },
+  action: "RESET_DRAFT" | "FINISH",
+): Promise<AdminEventDetail> {
+  const identifiers = z
+    .object({ eventId: z.uuid(), actorAdminId: z.uuid() })
+    .safeParse({ eventId, actorAdminId });
+  if (!identifiers.success) {
+    throw new AdminProgrammingInputError(identifiers.error.issues);
+  }
+
+  const input = {
+    eventId: identifiers.data.eventId,
+    actorAdminId: identifiers.data.actorAdminId,
+    now: dependencies.now?.() ?? new Date(),
+  };
+  const outcome = action === "RESET_DRAFT"
+    ? await dependencies.repository.resetEventToDraft(input)
+    : await dependencies.repository.finishEvent(input);
+
+  if (outcome === "not_found") throw new EventNotFoundError();
+  if (outcome === "invalid_status") throw new EventInvalidStatusError();
+  if (outcome === "active_session") throw new EventHasActiveSessionError();
+
+  const event = await dependencies.repository.getEvent(identifiers.data.eventId);
+  if (!event) throw new EventNotFoundError();
+  return event;
+}
+
+export function resetEventToDraft(
+  eventId: string,
+  actorAdminId: string,
+  dependencies: {
+    repository: AdminProgrammingRepository;
+    now?: () => Date;
+  },
+) {
+  return runEventTransition(eventId, actorAdminId, dependencies, "RESET_DRAFT");
+}
+
+export function finishEvent(
+  eventId: string,
+  actorAdminId: string,
+  dependencies: {
+    repository: AdminProgrammingRepository;
+    now?: () => Date;
+  },
+) {
+  return runEventTransition(eventId, actorAdminId, dependencies, "FINISH");
 }

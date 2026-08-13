@@ -43,7 +43,7 @@ Les tâches doivent être réalisées dans l'ordre et une seule tâche doit êtr
 - TASK 15 : recherche par pseudo ou code public, consultation du score et des réponses, désactivation avec révocation des sessions et audit terminées, fusionnées et déployées le 13 août 2026
 - TASK 16 : ajustements signés par session, motif obligatoire, ledger `ADMIN_ADJUSTMENT` et audit `SCORE_ADJUSTED` terminés, fusionnés et déployés le 13 août 2026
 - TASK 17 : catalogue des lots par événement, règles d’attribution, attribution aux joueurs et suivi de remise terminés, fusionnés et déployés le 13 août 2026
-- TASK 18 : correction des débordements horizontaux, densification des écrans de régie et limitation des listes longues développées et validées localement ; fusion et déploiement en attente
-- TASK 19 : prévue ; permettre une recette en production clairement identifiée, le retour d’un événement non clôturé vers `DRAFT`, la suppression de joueurs uniquement en contexte de test et conserver uniquement la désactivation en `LIVE`
+- TASK 18 : correction des débordements horizontaux, densification des écrans de régie et limitation des listes longues terminées, fusionnées et déployées le 13 août 2026
+- TASK 19 : contexte `TEST` ou `PRODUCTION` distinct du cycle de vie, retour contrôlé vers `DRAFT`, clôture explicite `FINISHED` et suppression transactionnelle des joueurs de test développés ; validation de la branche Neon de PR en attente
 
 Le détail fonctionnel et les critères de recette restent définis dans `docs/cahier-des-charges-v1.md`.

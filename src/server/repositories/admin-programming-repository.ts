@@ -3,6 +3,7 @@ import "server-only";
 import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import {
+  auditLogs,
   events,
   questions,
   quizSessions,
@@ -12,9 +13,13 @@ import { getDb } from "@/lib/db/client";
 import {
   type AdminEventDetail,
   type AdminProgrammingRepository,
+  type EventFinishOutcome,
+  type EventMutationOutcome,
   EventPersistenceError,
   type EventReadyOutcome,
+  type EventUpdateOutcome,
   type PersistEvent,
+  type UpdateEvent,
 } from "@/server/services/admin-programming";
 import type { QuizSessionDetail } from "@/server/services/session-engine";
 
@@ -56,6 +61,7 @@ async function createEvent(input: PersistEvent): Promise<AdminEventDetail> {
         startsAt: input.startsAt,
         endsAt: input.endsAt,
         timezone: input.timezone,
+        environment: input.environment,
         status: "DRAFT",
         createdAt: input.now,
         updatedAt: input.now,
@@ -70,6 +76,59 @@ async function createEvent(input: PersistEvent): Promise<AdminEventDetail> {
     }
 
     throw error;
+  }
+}
+
+type UpdateEventRow = { outcome: "UPDATED" | "NOT_FOUND" | "INVALID_STATUS" };
+
+async function updateEvent(input: UpdateEvent): Promise<EventUpdateOutcome> {
+  const result = await getDb().execute<UpdateEventRow>(sql`
+    WITH state AS (
+      SELECT event.id, event.status::text AS status
+      FROM ${events} AS event
+      WHERE event.id = ${input.id}::uuid
+    ), updated AS (
+      UPDATE ${events} AS event
+      SET
+        name = ${input.name},
+        description = ${input.description},
+        starts_at = ${input.startsAt},
+        ends_at = ${input.endsAt},
+        timezone = ${input.timezone},
+        environment = ${input.environment},
+        updated_at = ${input.now}
+      FROM state
+      WHERE event.id = state.id
+        AND state.status = 'DRAFT'
+      RETURNING event.id, event.environment
+    ), written_audit AS (
+      INSERT INTO ${auditLogs} (
+        admin_user_id, action, entity_type, entity_id, metadata, created_at
+      )
+      SELECT
+        ${input.actorAdminId}::uuid,
+        'EVENT_UPDATED',
+        'event',
+        updated.id,
+        jsonb_build_object('environment', updated.environment),
+        ${input.now}
+      FROM updated
+      RETURNING id
+    )
+    SELECT CASE
+      WHEN NOT EXISTS (SELECT 1 FROM state) THEN 'NOT_FOUND'
+      WHEN EXISTS (SELECT 1 FROM written_audit) THEN 'UPDATED'
+      ELSE 'INVALID_STATUS'
+    END::text AS outcome
+  `);
+
+  switch (result.rows[0]?.outcome) {
+    case "UPDATED":
+      return "updated";
+    case "INVALID_STATUS":
+      return "invalid_status";
+    default:
+      return "not_found";
   }
 }
 
@@ -219,10 +278,169 @@ async function markEventReady(
   }
 }
 
+type EventTransitionRow = {
+  outcome: "TRANSITIONED" | "NOT_FOUND" | "INVALID_STATUS" | "ACTIVE_SESSION";
+};
+
+async function resetEventToDraft(input: {
+  eventId: string;
+  actorAdminId: string;
+  now: Date;
+}): Promise<EventMutationOutcome> {
+  const result = await getDb().execute<EventTransitionRow>(sql`
+    WITH state AS (
+      SELECT event.id, event.status::text AS status
+      FROM ${events} AS event
+      WHERE event.id = ${input.eventId}::uuid
+    ), closed_questions AS (
+      UPDATE ${sessionQuestions} AS occurrence
+      SET
+        status = 'CLOSED',
+        closes_at = GREATEST(
+          occurrence.opens_at + interval '1 millisecond',
+          LEAST(COALESCE(occurrence.closes_at, ${input.now}), ${input.now})
+        )
+      FROM ${quizSessions} AS session, state
+      WHERE occurrence.quiz_session_id = session.id
+        AND session.event_id = state.id
+        AND session.status = 'LIVE'
+        AND occurrence.status = 'OPEN'
+        AND state.status NOT IN ('DRAFT', 'FINISHED')
+      RETURNING occurrence.id
+    ), paused_sessions AS (
+      UPDATE ${quizSessions} AS session
+      SET status = 'READY', ends_at = NULL, updated_at = ${input.now}
+      FROM state
+      WHERE session.event_id = state.id
+        AND session.status = 'LIVE'
+        AND state.status NOT IN ('DRAFT', 'FINISHED')
+      RETURNING session.id
+    ), updated AS (
+      UPDATE ${events} AS event
+      SET status = 'DRAFT', updated_at = ${input.now}
+      FROM state
+      WHERE event.id = state.id
+        AND state.status NOT IN ('DRAFT', 'FINISHED')
+      RETURNING event.id
+    ), written_audit AS (
+      INSERT INTO ${auditLogs} (
+        admin_user_id, action, entity_type, entity_id, metadata, created_at
+      )
+      SELECT
+        ${input.actorAdminId}::uuid,
+        'EVENT_RESET_DRAFT',
+        'event',
+        updated.id,
+        jsonb_build_object(
+          'pausedSessions', (SELECT count(*) FROM paused_sessions),
+          'closedQuestions', (SELECT count(*) FROM closed_questions)
+        ),
+        ${input.now}
+      FROM updated
+      RETURNING id
+    )
+    SELECT CASE
+      WHEN NOT EXISTS (SELECT 1 FROM state) THEN 'NOT_FOUND'
+      WHEN EXISTS (SELECT 1 FROM written_audit) THEN 'TRANSITIONED'
+      ELSE 'INVALID_STATUS'
+    END::text AS outcome
+  `);
+
+  if (result.rows[0]?.outcome === "TRANSITIONED") return "transitioned";
+  if (result.rows[0]?.outcome === "INVALID_STATUS") return "invalid_status";
+  return "not_found";
+}
+
+async function finishEvent(input: {
+  eventId: string;
+  actorAdminId: string;
+  now: Date;
+}): Promise<EventFinishOutcome> {
+  const result = await getDb().execute<EventTransitionRow>(sql`
+    WITH state AS (
+      SELECT
+        event.id,
+        event.status::text AS status,
+        EXISTS (
+          SELECT 1
+          FROM ${quizSessions} AS session
+          WHERE session.event_id = event.id
+            AND session.status = 'LIVE'
+        ) AS has_active_session
+      FROM ${events} AS event
+      WHERE event.id = ${input.eventId}::uuid
+    ), canceled_questions AS (
+      UPDATE ${sessionQuestions} AS occurrence
+      SET status = 'CANCELED', canceled_at = ${input.now}
+      FROM ${quizSessions} AS session, state
+      WHERE occurrence.quiz_session_id = session.id
+        AND session.event_id = state.id
+        AND session.status IN ('DRAFT', 'READY')
+        AND occurrence.status = 'PENDING'
+        AND state.status <> 'FINISHED'
+        AND state.has_active_session = false
+      RETURNING occurrence.id
+    ), canceled_sessions AS (
+      UPDATE ${quizSessions} AS session
+      SET status = 'CANCELED', updated_at = ${input.now}
+      FROM state
+      WHERE session.event_id = state.id
+        AND session.status IN ('DRAFT', 'READY')
+        AND state.status <> 'FINISHED'
+        AND state.has_active_session = false
+      RETURNING session.id
+    ), updated AS (
+      UPDATE ${events} AS event
+      SET status = 'FINISHED', updated_at = ${input.now}
+      FROM state
+      WHERE event.id = state.id
+        AND state.status <> 'FINISHED'
+        AND state.has_active_session = false
+      RETURNING event.id
+    ), written_audit AS (
+      INSERT INTO ${auditLogs} (
+        admin_user_id, action, entity_type, entity_id, metadata, created_at
+      )
+      SELECT
+        ${input.actorAdminId}::uuid,
+        'EVENT_FINISHED',
+        'event',
+        updated.id,
+        jsonb_build_object(
+          'canceledSessions', (SELECT count(*) FROM canceled_sessions),
+          'canceledQuestions', (SELECT count(*) FROM canceled_questions)
+        ),
+        ${input.now}
+      FROM updated
+      RETURNING id
+    )
+    SELECT CASE
+      WHEN NOT EXISTS (SELECT 1 FROM state) THEN 'NOT_FOUND'
+      WHEN EXISTS (SELECT 1 FROM written_audit) THEN 'TRANSITIONED'
+      WHEN (SELECT status FROM state) = 'FINISHED' THEN 'INVALID_STATUS'
+      ELSE 'ACTIVE_SESSION'
+    END::text AS outcome
+  `);
+
+  switch (result.rows[0]?.outcome) {
+    case "TRANSITIONED":
+      return "transitioned";
+    case "INVALID_STATUS":
+      return "invalid_status";
+    case "ACTIVE_SESSION":
+      return "active_session";
+    default:
+      return "not_found";
+  }
+}
+
 export const postgresAdminProgrammingRepository: AdminProgrammingRepository = {
   createEvent,
+  updateEvent,
   listEvents,
   listSessions,
   getEvent,
   markEventReady,
+  resetEventToDraft,
+  finishEvent,
 };

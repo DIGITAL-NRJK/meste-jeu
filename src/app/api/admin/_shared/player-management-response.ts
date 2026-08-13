@@ -7,6 +7,7 @@ import { postgresAdminAuthRepository } from "@/server/repositories/admin-auth-re
 import { getAuthenticatedAdmin, type AdminIdentity } from "@/server/services/admin-auth";
 import {
   AdminPlayerAlreadyDisabledError,
+  AdminPlayerDeletionForbiddenError,
   AdminPlayerEventNotFoundError,
   AdminPlayerInputError,
   AdminPlayerNotFoundError,
@@ -87,6 +88,23 @@ export function adminPlayerErrorResponse(error: unknown) {
         error: {
           code: "PLAYER_ALREADY_DISABLED",
           message: "Ce joueur est déjà désactivé.",
+        },
+      },
+      { status: 409, headers: adminPlayerHeaders },
+    );
+  }
+
+  if (error instanceof AdminPlayerDeletionForbiddenError) {
+    const production = error.reason === "production_event";
+    return NextResponse.json(
+      {
+        error: {
+          code: production
+            ? "PRODUCTION_PLAYER_DELETION_FORBIDDEN"
+            : "FINISHED_EVENT_PLAYER_DELETION_FORBIDDEN",
+          message: production
+            ? "Un joueur de production peut être désactivé, mais pas supprimé."
+            : "Un événement terminé est clôturé : ses joueurs ne peuvent plus être supprimés.",
         },
       },
       { status: 409, headers: adminPlayerHeaders },

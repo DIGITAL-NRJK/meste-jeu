@@ -9,6 +9,7 @@ const playerRepository = vi.hoisted(() => ({
   listPlayers: vi.fn(),
   getPlayer: vi.fn(),
   disablePlayer: vi.fn(),
+  deletePlayer: vi.fn(),
   appendScoreAdjustment: vi.fn(),
 }));
 
@@ -26,7 +27,10 @@ vi.mock("@/server/repositories/admin-player-management-repository", () => ({
 
 import { GET as listPlayers } from "../../src/app/api/admin/players/route";
 import { GET as getPlayer } from "../../src/app/api/admin/players/[id]/route";
-import { POST as runPlayerAction } from "../../src/app/api/admin/players/[id]/actions/route";
+import {
+  DELETE as deletePlayer,
+  POST as runPlayerAction,
+} from "../../src/app/api/admin/players/[id]/actions/route";
 
 const adminId = "00000000-0000-4000-8000-000000000001";
 const eventId = "00000000-0000-4000-8000-000000000002";
@@ -37,6 +41,7 @@ const event = {
   id: eventId,
   slug: "independance-congo-66",
   name: "Tombola — 66e anniversaire",
+  environment: "TEST" as const,
   status: "READY" as const,
 };
 const player = {
@@ -86,6 +91,7 @@ describe("admin player management API", () => {
     playerRepository.listPlayers.mockResolvedValue([player]);
     playerRepository.getPlayer.mockResolvedValue(player);
     playerRepository.disablePlayer.mockResolvedValue("disabled");
+    playerRepository.deletePlayer.mockResolvedValue("deleted");
     playerRepository.appendScoreAdjustment.mockResolvedValue("created");
   });
 
@@ -170,6 +176,36 @@ describe("admin player management API", () => {
     );
     await expect(response.json()).resolves.toMatchObject({
       player: { totalPoints: 200 },
+    });
+  });
+
+  it("supprime définitivement un joueur de test avec l’identité administrateur", async () => {
+    const response = await deletePlayer(
+      request(`http://localhost/api/admin/players/${playerId}/actions`, {
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ id: playerId }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(playerRepository.deletePlayer).toHaveBeenCalledWith(
+      expect.objectContaining({ playerId, actorAdminId: adminId }),
+    );
+    await expect(response.json()).resolves.toEqual({ deletedPlayerId: playerId });
+  });
+
+  it("refuse la suppression d’un joueur de production", async () => {
+    playerRepository.deletePlayer.mockResolvedValue("production_event");
+    const response = await deletePlayer(
+      request(`http://localhost/api/admin/players/${playerId}/actions`, {
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ id: playerId }) },
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "PRODUCTION_PLAYER_DELETION_FORBIDDEN" },
     });
   });
 

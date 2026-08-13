@@ -57,7 +57,11 @@ export type AuditAction =
   | "QUESTION_CANCELED"
   | "SCORE_ADJUSTED"
   | "PLAYER_DISABLED"
-  | "REWARD_AWARDED";
+  | "REWARD_AWARDED"
+  | "EVENT_UPDATED"
+  | "EVENT_RESET_DRAFT"
+  | "EVENT_FINISHED"
+  | "PLAYER_DELETED";
 
 export type AdminAuditLogEntry = {
   id: string;

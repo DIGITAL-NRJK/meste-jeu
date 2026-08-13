@@ -6,12 +6,14 @@ import {
   adminUsers,
   answers,
   auditLogs,
+  consents,
   events,
   players,
   playerSessions,
   questionOptions,
   questions,
   quizSessions,
+  rewardAwards,
   scoreEvents,
   sessionQuestions,
 } from "../../../db/schema";
@@ -26,6 +28,7 @@ import type {
   AdminPlayerScoreSession,
   AdminPlayerSummary,
   AppendScoreAdjustmentOutcome,
+  DeletePlayerOutcome,
   DisablePlayerOutcome,
   PersistScoreAdjustment,
 } from "@/server/services/admin-player-management";
@@ -36,6 +39,7 @@ async function listEvents(): Promise<AdminPlayerEvent[]> {
       event.id,
       event.slug,
       event.name,
+      event.environment::text AS environment,
       event.status::text AS status
     FROM ${events} AS event
     ORDER BY
@@ -102,6 +106,7 @@ type PlayerDetailRow = Omit<
   eventId: string;
   eventSlug: string;
   eventName: string;
+  eventEnvironment: AdminPlayerEvent["environment"];
   eventStatus: AdminPlayerEvent["status"];
 };
 
@@ -135,6 +140,7 @@ async function getPlayer(playerId: string): Promise<AdminPlayerDetail | null> {
           event.id AS "eventId",
           event.slug AS "eventSlug",
           event.name AS "eventName",
+          event.environment::text AS "eventEnvironment",
           event.status::text AS "eventStatus"
         FROM ${players} AS player
         INNER JOIN ${events} AS event ON event.id = player.event_id
@@ -232,6 +238,7 @@ async function getPlayer(playerId: string): Promise<AdminPlayerDetail | null> {
       id: player.eventId,
       slug: player.eventSlug,
       name: player.eventName,
+      environment: player.eventEnvironment,
       status: player.eventStatus,
     },
     answers: [...answerResult.rows],
@@ -299,6 +306,110 @@ async function disablePlayer(input: {
   if (outcome === "DISABLED") return "disabled";
   if (outcome === "ALREADY_DISABLED") return "already_disabled";
   return "not_found";
+}
+
+type DeletePlayerRow = {
+  outcome: "DELETED" | "NOT_FOUND" | "PRODUCTION_EVENT" | "FINISHED_EVENT";
+};
+
+async function deletePlayer(input: {
+  playerId: string;
+  actorAdminId: string;
+  now: Date;
+}): Promise<DeletePlayerOutcome> {
+  const result = await getDb().execute<DeletePlayerRow>(sql`
+    WITH candidate AS (
+      SELECT
+        player.id,
+        player.event_id,
+        player.public_code,
+        player.nickname,
+        event.environment::text AS environment,
+        event.status::text AS event_status
+      FROM ${players} AS player
+      INNER JOIN ${events} AS event ON event.id = player.event_id
+      WHERE player.id = ${input.playerId}::uuid
+    ), eligible AS (
+      SELECT *
+      FROM candidate
+      WHERE environment = 'TEST'
+        AND event_status <> 'FINISHED'
+    ), deleted_awards AS (
+      DELETE FROM ${rewardAwards} AS award
+      USING eligible
+      WHERE award.player_id = eligible.id
+      RETURNING award.id
+    ), deleted_scores AS (
+      DELETE FROM ${scoreEvents} AS score
+      USING eligible
+      WHERE score.player_id = eligible.id
+        AND (SELECT count(*) FROM deleted_awards) >= 0
+      RETURNING score.id
+    ), deleted_answers AS (
+      DELETE FROM ${answers} AS answer
+      USING eligible
+      WHERE answer.player_id = eligible.id
+        AND (SELECT count(*) FROM deleted_scores) >= 0
+      RETURNING answer.id
+    ), deleted_sessions AS (
+      DELETE FROM ${playerSessions} AS player_session
+      USING eligible
+      WHERE player_session.player_id = eligible.id
+        AND (SELECT count(*) FROM deleted_answers) >= 0
+      RETURNING player_session.id
+    ), deleted_consents AS (
+      DELETE FROM ${consents} AS consent
+      USING eligible
+      WHERE consent.player_id = eligible.id
+        AND (SELECT count(*) FROM deleted_sessions) >= 0
+      RETURNING consent.id
+    ), written_audit AS (
+      INSERT INTO ${auditLogs} (
+        admin_user_id, action, entity_type, entity_id, metadata, created_at
+      )
+      SELECT
+        ${input.actorAdminId}::uuid,
+        'PLAYER_DELETED',
+        'player',
+        eligible.id,
+        jsonb_build_object(
+          'eventId', eligible.event_id,
+          'publicCode', eligible.public_code,
+          'nickname', eligible.nickname,
+          'rewardAwards', (SELECT count(*) FROM deleted_awards),
+          'scoreEvents', (SELECT count(*) FROM deleted_scores),
+          'answers', (SELECT count(*) FROM deleted_answers),
+          'playerSessions', (SELECT count(*) FROM deleted_sessions),
+          'consents', (SELECT count(*) FROM deleted_consents)
+        ),
+        ${input.now}
+      FROM eligible
+      RETURNING entity_id
+    ), deleted AS (
+      DELETE FROM ${players} AS player
+      USING written_audit
+      WHERE player.id = written_audit.entity_id
+      RETURNING player.id
+    )
+    SELECT CASE
+      WHEN NOT EXISTS (SELECT 1 FROM candidate) THEN 'NOT_FOUND'
+      WHEN (SELECT environment FROM candidate) <> 'TEST' THEN 'PRODUCTION_EVENT'
+      WHEN (SELECT event_status FROM candidate) = 'FINISHED' THEN 'FINISHED_EVENT'
+      WHEN EXISTS (SELECT 1 FROM deleted) THEN 'DELETED'
+      ELSE 'NOT_FOUND'
+    END::text AS outcome
+  `);
+
+  switch (result.rows[0]?.outcome) {
+    case "DELETED":
+      return "deleted";
+    case "PRODUCTION_EVENT":
+      return "production_event";
+    case "FINISHED_EVENT":
+      return "finished_event";
+    default:
+      return "not_found";
+  }
 }
 
 type AppendScoreAdjustmentRow = {
@@ -387,5 +498,6 @@ export const postgresAdminPlayerManagementRepository: AdminPlayerManagementRepos
   listPlayers,
   getPlayer,
   disablePlayer,
+  deletePlayer,
   appendScoreAdjustment,
 };

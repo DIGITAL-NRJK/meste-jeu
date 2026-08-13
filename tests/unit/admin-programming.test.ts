@@ -4,12 +4,17 @@ import {
   createEvent,
   type AdminEventDetail,
   type AdminProgrammingRepository,
+  EventHasActiveSessionError,
+  EventInvalidStatusError,
   EventNotReadyError,
   EventPersistenceError,
   EventSlugConflictError,
   getAdminProgramming,
+  finishEvent,
   markEventReady,
   normalizeEventSlug,
+  resetEventToDraft,
+  updateEvent,
 } from "../../src/server/services/admin-programming";
 
 const eventId = "00000000-0000-4000-8000-000000000001";
@@ -24,6 +29,7 @@ function eventDetail(input?: Partial<AdminEventDetail>): AdminEventDetail {
     startsAt: new Date("2026-08-15T16:00:00.000Z"),
     endsAt: new Date("2026-08-15T22:00:00.000Z"),
     timezone: "Africa/Brazzaville",
+    environment: "PRODUCTION",
     status: "DRAFT",
     createdAt: now,
     updatedAt: now,
@@ -36,10 +42,13 @@ function repository(
 ): AdminProgrammingRepository {
   return {
     createEvent: vi.fn(async () => eventDetail()),
+    updateEvent: vi.fn(async () => "updated" as const),
     listEvents: vi.fn(async () => [eventDetail()]),
     listSessions: vi.fn(async () => []),
     getEvent: vi.fn(async () => eventDetail({ status: "READY" })),
     markEventReady: vi.fn(async () => "transitioned" as const),
+    resetEventToDraft: vi.fn(async () => "transitioned" as const),
+    finishEvent: vi.fn(async () => "transitioned" as const),
     ...overrides,
   };
 }
@@ -146,5 +155,84 @@ describe("admin programming service", () => {
     await expect(
       markEventReady(eventId, { repository: repository() }),
     ).resolves.toMatchObject({ status: "READY" });
+  });
+
+  it("met à jour le contexte et les horaires uniquement en brouillon", async () => {
+    const programmingRepository = repository({
+      getEvent: vi.fn(async () => eventDetail({ environment: "TEST" })),
+    });
+
+    await expect(
+      updateEvent(
+        eventId,
+        {
+          name: "Héritage Congo — répétition",
+          startsAt: "2026-08-15T16:00:00.000Z",
+          endsAt: "2026-08-15T22:00:00.000Z",
+          timezone: "Africa/Accra",
+          environment: "TEST",
+        },
+        eventId,
+        { repository: programmingRepository, now: () => now },
+      ),
+    ).resolves.toMatchObject({ environment: "TEST" });
+    expect(programmingRepository.updateEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: eventId,
+        actorAdminId: eventId,
+        environment: "TEST",
+        now,
+      }),
+    );
+
+    await expect(
+      updateEvent(
+        eventId,
+        {
+          name: "Héritage Congo — répétition",
+          startsAt: "2026-08-15T16:00:00.000Z",
+          endsAt: "2026-08-15T22:00:00.000Z",
+          timezone: "Africa/Accra",
+          environment: "TEST",
+        },
+        eventId,
+        {
+          repository: repository({
+            updateEvent: vi.fn(async () => "invalid_status" as const),
+          }),
+        },
+      ),
+    ).rejects.toBeInstanceOf(EventInvalidStatusError);
+  });
+
+  it("autorise le retour en brouillon mais clôture FINISHED explicitement", async () => {
+    const liveEvent = eventDetail({ status: "LIVE" });
+    const draftRepository = repository({
+      getEvent: vi.fn(async () => eventDetail()),
+    });
+    const finishRepository = repository({
+      getEvent: vi.fn(async () => eventDetail({ status: "FINISHED" })),
+    });
+
+    await expect(
+      resetEventToDraft(liveEvent.id, eventId, {
+        repository: draftRepository,
+        now: () => now,
+      }),
+    ).resolves.toMatchObject({ status: "DRAFT" });
+    await expect(
+      finishEvent(liveEvent.id, eventId, {
+        repository: finishRepository,
+        now: () => now,
+      }),
+    ).resolves.toMatchObject({ status: "FINISHED" });
+
+    await expect(
+      finishEvent(liveEvent.id, eventId, {
+        repository: repository({
+          finishEvent: vi.fn(async () => "active_session" as const),
+        }),
+      }),
+    ).rejects.toBeInstanceOf(EventHasActiveSessionError);
   });
 });

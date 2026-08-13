@@ -84,6 +84,7 @@ export function AdminPlayerManagementView({
   const [listPending, setListPending] = useState(false);
   const [detailPending, setDetailPending] = useState(false);
   const [disablePending, setDisablePending] = useState(false);
+  const [deletePending, setDeletePending] = useState(false);
   const [adjustmentPending, setAdjustmentPending] = useState(false);
   const [adjustmentForm, setAdjustmentForm] = useState({
     quizSessionId: "",
@@ -91,6 +92,9 @@ export function AdminPlayerManagementView({
     reason: "",
   });
   const [message, setMessage] = useState<string | null>(null);
+  const currentEvent = initialEvents.find(
+    (candidate) => candidate.slug === eventSlug,
+  );
 
   async function apiFetch(input: string, init?: RequestInit) {
     const response = await fetch(input, { cache: "no-store", ...init });
@@ -198,6 +202,39 @@ export function AdminPlayerManagementView({
       setMessage(error instanceof Error ? error.message : "Désactivation refusée.");
     } finally {
       setDisablePending(false);
+    }
+  }
+
+  async function deletePlayer() {
+    if (
+      !selectedPlayer ||
+      selectedPlayer.event.environment !== "TEST" ||
+      selectedPlayer.event.status === "FINISHED" ||
+      !window.confirm(
+        `Supprimer définitivement ${selectedPlayer.nickname} de cet événement de test ?\n\nSes réponses, son score, ses connexions et ses éventuelles récompenses seront supprimés. Cette action est irréversible.`,
+      )
+    ) {
+      return;
+    }
+
+    setDeletePending(true);
+    setMessage(null);
+    try {
+      const deletedPlayerId = selectedPlayer.id;
+      const response = await apiFetch(
+        `/api/admin/players/${deletedPlayerId}/actions`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) throw new Error(await responseError(response));
+      setPlayers((current) =>
+        current.filter((player) => player.id !== deletedPlayerId),
+      );
+      setSelectedPlayer(null);
+      setMessage("Joueur de test supprimé avec toutes ses données de participation.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Suppression refusée.");
+    } finally {
+      setDeletePending(false);
     }
   }
 
@@ -318,9 +355,18 @@ export function AdminPlayerManagementView({
               <span>Événement</span>
               <select value={eventSlug} onChange={(event) => changeEvent(event.target.value)}>
                 {initialEvents.map((event) => (
-                  <option key={event.id} value={event.slug}>{event.name}</option>
+                  <option key={event.id} value={event.slug}>
+                    {event.environment === "TEST" ? "[TEST] " : ""}{event.name}
+                  </option>
                 ))}
               </select>
+              {currentEvent ? (
+                <small>
+                  {currentEvent.environment === "TEST"
+                    ? "Contexte test : les joueurs peuvent être supprimés avant clôture."
+                    : "Contexte production : les joueurs peuvent uniquement être désactivés."}
+                </small>
+              ) : null}
             </label>
           ) : null}
         </section>
@@ -394,7 +440,9 @@ export function AdminPlayerManagementView({
 
             <section
               className="player-management-detail"
-              aria-busy={detailPending || disablePending || adjustmentPending}
+              aria-busy={
+                detailPending || disablePending || deletePending || adjustmentPending
+              }
             >
               {!selectedPlayer ? (
                 <div className="player-management-detail-empty">
@@ -533,6 +581,22 @@ export function AdminPlayerManagementView({
                       </div>
                       <button type="button" disabled={disablePending} onClick={disablePlayer}>
                         {disablePending ? "Désactivation…" : "Désactiver le joueur"}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {selectedPlayer.event.environment === "TEST" &&
+                  selectedPlayer.event.status !== "FINISHED" ? (
+                    <div className="player-delete-panel">
+                      <div>
+                        <strong>Nettoyer un participant de test</strong>
+                        <p>
+                          Supprime définitivement sa participation, ses réponses,
+                          son score, ses connexions et ses récompenses.
+                        </p>
+                      </div>
+                      <button type="button" disabled={deletePending} onClick={deletePlayer}>
+                        {deletePending ? "Suppression…" : "Supprimer le joueur test"}
                       </button>
                     </div>
                   ) : null}

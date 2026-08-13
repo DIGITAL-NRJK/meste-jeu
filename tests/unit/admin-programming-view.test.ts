@@ -21,6 +21,7 @@ const event = {
   startsAt: "2026-08-15T16:00:00.000Z",
   endsAt: "2026-08-15T22:00:00.000Z",
   timezone: "Africa/Brazzaville",
+  environment: "TEST" as const,
   status: "DRAFT" as const,
   createdAt: "2026-08-13T12:00:00.000Z",
   updatedAt: "2026-08-13T12:00:00.000Z",
@@ -95,5 +96,7 @@ describe("AdminProgrammingView", () => {
     expect(html).toContain("Ordre de passage");
     expect(html).toContain("République du Congo");
     expect(html).toContain("Verrouiller et rendre prête");
+    expect(html).toContain("Test — joueurs supprimables");
+    expect(html).toContain("Modifier");
   });
 });

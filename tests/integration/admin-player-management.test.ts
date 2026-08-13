@@ -10,6 +10,7 @@ import {
   answers,
   auditLogs,
   categories,
+  consents,
   events,
   players,
   playerSessions,
@@ -24,6 +25,7 @@ import { postgresAdminPlayerManagementRepository } from "../../src/server/reposi
 import { postgresLeaderboardRepository } from "../../src/server/repositories/leaderboard-repository";
 import {
   adjustAdminPlayerScore,
+  deleteAdminTestPlayer,
   disableAdminPlayer,
   getAdminPlayer,
   getAdminPlayerManagement,
@@ -56,6 +58,11 @@ const adjustmentId = randomUUID();
 const rejectedAdjustmentId = randomUUID();
 const eventSlug = `integration-player-admin-${randomUUID()}`;
 const publicCode = `PC-${randomUUID()}`;
+const testEventId = randomUUID();
+const testSessionId = randomUUID();
+const testPlayerId = randomUUID();
+const testPlayerSessionId = randomUUID();
+const testConsentId = randomUUID();
 
 describe("admin player management with PostgreSQL", () => {
   beforeAll(async () => {
@@ -73,6 +80,16 @@ describe("admin player management with PostgreSQL", () => {
       endsAt: new Date("2026-08-15T22:00:00.000Z"),
       timezone: "Africa/Accra",
       status: "READY",
+    });
+    await db.insert(events).values({
+      id: testEventId,
+      slug: `integration-player-delete-${testEventId}`,
+      name: "Événement test suppression Congo",
+      startsAt: new Date("2026-08-15T16:00:00.000Z"),
+      endsAt: new Date("2026-08-15T22:00:00.000Z"),
+      timezone: "Africa/Accra",
+      environment: "TEST",
+      status: "LIVE",
     });
     await db.insert(categories).values({
       id: categoryId,
@@ -131,6 +148,14 @@ describe("admin player management with PostgreSQL", () => {
       mode: "LIVE",
       status: "READY",
     });
+    await db.insert(quizSessions).values({
+      id: testSessionId,
+      eventId: testEventId,
+      name: "Session suppression test",
+      slug: `session-suppression-${testSessionId}`,
+      mode: "LIVE",
+      status: "LIVE",
+    });
     await db.insert(sessionQuestions).values([
       {
         id: occurrenceIds[0],
@@ -170,11 +195,28 @@ describe("admin player management with PostgreSQL", () => {
         nickname: "Sanza test joueurs",
       },
     ]);
+    await db.insert(players).values({
+      id: testPlayerId,
+      eventId: testEventId,
+      publicCode: `TEST-${randomUUID()}`,
+      nickname: "Joueur supprimable",
+    });
     await db.insert(playerSessions).values({
       id: playerSessionId,
       playerId: playerIds[0],
       tokenHash: `integration-player-token-${randomUUID()}`,
       expiresAt: new Date("2026-08-16T12:00:00.000Z"),
+    });
+    await db.insert(playerSessions).values({
+      id: testPlayerSessionId,
+      playerId: testPlayerId,
+      tokenHash: `integration-delete-token-${randomUUID()}`,
+      expiresAt: new Date("2026-08-16T12:00:00.000Z"),
+    });
+    await db.insert(consents).values({
+      id: testConsentId,
+      playerId: testPlayerId,
+      purpose: "participation-test",
     });
     await db.insert(answers).values([
       {
@@ -208,16 +250,21 @@ describe("admin player management with PostgreSQL", () => {
 
   afterAll(async () => {
     await db.delete(auditLogs).where(eq(auditLogs.adminUserId, adminId));
+    await db.delete(consents).where(eq(consents.id, testConsentId));
     await db.delete(scoreEvents).where(eq(scoreEvents.playerId, playerIds[0]));
     await db.delete(answers).where(inArray(answers.id, answerIds));
     await db.delete(playerSessions).where(eq(playerSessions.id, playerSessionId));
     await db.delete(players).where(inArray(players.id, playerIds));
+    await db.delete(playerSessions).where(eq(playerSessions.id, testPlayerSessionId));
+    await db.delete(players).where(eq(players.id, testPlayerId));
     await db.delete(sessionQuestions).where(inArray(sessionQuestions.id, occurrenceIds));
     await db.delete(quizSessions).where(eq(quizSessions.id, sessionId));
+    await db.delete(quizSessions).where(eq(quizSessions.id, testSessionId));
     await db.delete(questionOptions).where(inArray(questionOptions.id, optionIds));
     await db.delete(questions).where(inArray(questions.id, questionIds));
     await db.delete(categories).where(eq(categories.id, categoryId));
     await db.delete(events).where(eq(events.id, eventId));
+    await db.delete(events).where(eq(events.id, testEventId));
     await db.delete(adminUsers).where(eq(adminUsers.id, adminId));
   });
 
@@ -400,5 +447,41 @@ describe("admin player management with PostgreSQL", () => {
         now: () => now,
       }),
     ).rejects.toMatchObject({ name: "AdminPlayerAlreadyDisabledError" });
+  });
+
+  it("supprime un joueur pendant un live TEST mais refuse en PRODUCTION", async () => {
+    await expect(
+      deleteAdminTestPlayer(playerIds[1], adminId, {
+        repository: postgresAdminPlayerManagementRepository,
+        now: () => now,
+      }),
+    ).rejects.toMatchObject({
+      name: "AdminPlayerDeletionForbiddenError",
+      reason: "production_event",
+    });
+
+    await expect(
+      deleteAdminTestPlayer(testPlayerId, adminId, {
+        repository: postgresAdminPlayerManagementRepository,
+        now: () => now,
+      }),
+    ).resolves.toEqual({ deletedPlayerId: testPlayerId });
+
+    const [playerRows, sessionRows, consentRows, auditRows] = await db.batch([
+      db.select().from(players).where(eq(players.id, testPlayerId)),
+      db
+        .select()
+        .from(playerSessions)
+        .where(eq(playerSessions.id, testPlayerSessionId)),
+      db.select().from(consents).where(eq(consents.id, testConsentId)),
+      db
+        .select({ action: auditLogs.action })
+        .from(auditLogs)
+        .where(eq(auditLogs.entityId, testPlayerId)),
+    ]);
+    expect(playerRows).toEqual([]);
+    expect(sessionRows).toEqual([]);
+    expect(consentRows).toEqual([]);
+    expect(auditRows).toEqual([{ action: "PLAYER_DELETED" }]);
   });
 });

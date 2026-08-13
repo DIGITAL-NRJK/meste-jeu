@@ -8,6 +8,7 @@ import { getAuthenticatedAdmin, type AdminIdentity } from "@/server/services/adm
 import {
   AdminProgrammingInputError,
   EventInvalidStatusError,
+  EventHasActiveSessionError,
   EventNotFoundError,
   EventNotReadyError,
   EventSlugConflictError,
@@ -128,6 +129,18 @@ export function adminProgrammingErrorResponse(error: unknown) {
         error: {
           code: "EVENT_NOT_READY",
           message: "Préparez au moins une session avant d’ouvrir les inscriptions.",
+        },
+      },
+      { status: 409, headers: adminProgrammingHeaders },
+    );
+  }
+
+  if (error instanceof EventHasActiveSessionError) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "EVENT_HAS_ACTIVE_SESSION",
+          message: "Terminez la session en direct avant de clôturer l’événement.",
         },
       },
       { status: 409, headers: adminProgrammingHeaders },

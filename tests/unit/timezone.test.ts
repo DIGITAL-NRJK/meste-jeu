@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   getTimeZoneOptions,
   localDateTimeToUtcIso,
+  utcIsoToLocalDateTime,
 } from "../../src/lib/date/timezone";
 
 describe("localDateTimeToUtcIso", () => {
@@ -16,6 +17,15 @@ describe("localDateTimeToUtcIso", () => {
     expect(localDateTimeToUtcIso("2026-08-15T18:00", "Europe/Paris")).toBe(
       "2026-08-15T16:00:00.000Z",
     );
+  });
+
+  it("reconvertit une date UTC pour préremplir un formulaire local", () => {
+    expect(
+      utcIsoToLocalDateTime(
+        "2026-08-15T16:00:00.000Z",
+        "Africa/Brazzaville",
+      ),
+    ).toBe("2026-08-15T17:00");
   });
 
   it("refuse une date locale illisible", () => {

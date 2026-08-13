@@ -6,6 +6,7 @@ export type AdminPlayerEvent = {
   id: string;
   slug: string;
   name: string;
+  environment: "TEST" | "PRODUCTION";
   status: "DRAFT" | "READY" | "LIVE" | "FINISHED" | "CANCELED";
 };
 
@@ -74,6 +75,12 @@ export type DisablePlayerOutcome =
   | "not_found"
   | "already_disabled";
 
+export type DeletePlayerOutcome =
+  | "deleted"
+  | "not_found"
+  | "production_event"
+  | "finished_event";
+
 export type AppendScoreAdjustmentOutcome =
   | "created"
   | "player_not_found"
@@ -98,6 +105,11 @@ export interface AdminPlayerManagementRepository {
     actorAdminId: string;
     now: Date;
   }): Promise<DisablePlayerOutcome>;
+  deletePlayer(input: {
+    playerId: string;
+    actorAdminId: string;
+    now: Date;
+  }): Promise<DeletePlayerOutcome>;
   appendScoreAdjustment(
     input: PersistScoreAdjustment,
   ): Promise<AppendScoreAdjustmentOutcome>;
@@ -128,6 +140,13 @@ export class AdminPlayerAlreadyDisabledError extends Error {
   constructor() {
     super("Admin player already disabled");
     this.name = "AdminPlayerAlreadyDisabledError";
+  }
+}
+
+export class AdminPlayerDeletionForbiddenError extends Error {
+  constructor(readonly reason: "production_event" | "finished_event") {
+    super(`Admin player deletion forbidden: ${reason}`);
+    this.name = "AdminPlayerDeletionForbiddenError";
   }
 }
 
@@ -240,6 +259,32 @@ export async function disableAdminPlayer(
   }
 
   return getAdminPlayer(parsed.data.playerId, dependencies.repository);
+}
+
+export async function deleteAdminTestPlayer(
+  playerId: unknown,
+  actorAdminId: unknown,
+  dependencies: {
+    repository: AdminPlayerManagementRepository;
+    now?: () => Date;
+  },
+): Promise<{ deletedPlayerId: string }> {
+  const parsed = z
+    .object({ playerId: playerIdSchema, actorAdminId: z.uuid() })
+    .safeParse({ playerId, actorAdminId });
+  if (!parsed.success) throw new AdminPlayerInputError(parsed.error.issues);
+
+  const outcome = await dependencies.repository.deletePlayer({
+    ...parsed.data,
+    now: dependencies.now?.() ?? new Date(),
+  });
+
+  if (outcome === "not_found") throw new AdminPlayerNotFoundError();
+  if (outcome !== "deleted") {
+    throw new AdminPlayerDeletionForbiddenError(outcome);
+  }
+
+  return { deletedPlayerId: parsed.data.playerId };
 }
 
 export async function adjustAdminPlayerScore(

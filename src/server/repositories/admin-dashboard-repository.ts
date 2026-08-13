@@ -27,6 +27,7 @@ async function listEvents(): Promise<AdminEventOption[]> {
       ${events.id} AS id,
       ${events.slug} AS slug,
       ${events.name} AS name,
+      ${events.environment}::text AS environment,
       ${events.status}::text AS status
     FROM ${events}
     ORDER BY

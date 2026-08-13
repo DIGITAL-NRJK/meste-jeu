@@ -1,6 +1,42 @@
 const localDateTimePattern =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
 
+const preferredTimeZones = [
+  "Africa/Accra",
+  "Africa/Brazzaville",
+  "Europe/Paris",
+  "UTC",
+] as const;
+
+const timeZoneLabels: Record<string, string> = {
+  "Africa/Accra": "Africa/Accra — Accra, Ghana",
+  "Africa/Brazzaville": "Africa/Brazzaville — Brazzaville, Congo",
+  "Europe/Paris": "Europe/Paris — Paris, France",
+  UTC: "UTC — Temps universel coordonné",
+};
+
+export type TimeZoneOption = {
+  value: string;
+  label: string;
+};
+
+export function getTimeZoneOptions(): TimeZoneOption[] {
+  const supported = Intl.supportedValuesOf("timeZone");
+  const remaining = supported
+    .filter(
+      (timeZone) =>
+        !preferredTimeZones.includes(
+          timeZone as (typeof preferredTimeZones)[number],
+        ),
+    )
+    .sort((left, right) => left.localeCompare(right, "fr"));
+
+  return [...preferredTimeZones, ...remaining].map((timeZone) => ({
+    value: timeZone,
+    label: timeZoneLabels[timeZone] ?? timeZone.replaceAll("_", " "),
+  }));
+}
+
 function partsInTimeZone(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone,

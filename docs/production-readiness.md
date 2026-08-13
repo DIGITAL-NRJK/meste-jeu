@@ -23,7 +23,9 @@ Le schéma et plusieurs services métier existent déjà pour certaines de ces c
 
 TASK 13 raccorde la bibliothèque à `/admin/questions` avec recherche, filtres, cycle éditorial, sources, QCM texte/image et activation des catégories. Elle est fusionnée et déployée.
 
-TASK 14 ajoute `/admin/sessions` pour créer un événement, créer ses sessions, composer le conducteur ordonné à partir des seules questions validées, fixer chaque durée et verrouiller une session en `READY`. L’ouverture des inscriptions fait passer l’événement de `DRAFT` à `READY` uniquement si une session est elle-même prête. Sa validation PostgreSQL reste réservée au workflow Neon de la PR ; aucune donnée de production ne doit être utilisée pour cette vérification.
+TASK 14 ajoute `/admin/sessions` pour créer un événement, créer ses sessions, composer le conducteur ordonné à partir des seules questions validées, fixer chaque durée et verrouiller une session en `READY`. L’ouverture des inscriptions fait passer l’événement de `DRAFT` à `READY` uniquement si une session est elle-même prête. Elle est fusionnée et déployée depuis le 13 août 2026.
+
+Le seed éditorial du 66e anniversaire prépare 5 catégories, 50 questions sourcées et 6 sessions en brouillon dans le fuseau `Africa/Accra`. Sa procédure sécurisée est documentée dans `docs/seed-independence-66.md`. Son exécution sur Neon production reste interdite avant la réussite du workflow de sa PR, la vérification d’un point de restauration et une confirmation explicite de l’opérateur.
 
 ## Contrôles automatisés avant chaque fusion
 
@@ -114,6 +116,7 @@ Le seuil d’inscription est volontairement fixé à 1 500 requêtes par minute 
 ## Répétition générale
 
 - [ ] charger le contenu final validé et ses sources ;
+- [ ] contrôler le seed du 66e anniversaire sur la branche Neon éphémère, puis l’exécuter une seule fois sur production selon `docs/seed-independence-66.md` ;
 - [ ] jouer toutes les questions dans l’ordre réel ;
 - [ ] vérifier chaque bonne réponse, explication, image et durée ;
 - [ ] simuler une annulation et une perte réseau ;

@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "admin:create": "node scripts/create-admin.mjs",
+    "content:seed:independence-66": "node scripts/seed-independence-66.mjs",
     "db:check": "drizzle-kit check",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

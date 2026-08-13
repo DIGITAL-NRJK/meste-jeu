@@ -95,6 +95,9 @@ export const auditActionEnum = pgEnum("audit_action", [
   "EVENT_RESET_DRAFT",
   "EVENT_FINISHED",
   "PLAYER_DELETED",
+  "ADMIN_USER_CREATED",
+  "ADMIN_USER_DISABLED",
+  "ADMIN_USER_REACTIVATED",
 ]);
 
 export const adminUsers = pgTable(

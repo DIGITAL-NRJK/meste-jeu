@@ -42,6 +42,9 @@ const auditActionLabels: Record<AdminAuditLogEntry["action"], string> = {
   EVENT_RESET_DRAFT: "Événement repassé en brouillon",
   EVENT_FINISHED: "Événement clôturé",
   PLAYER_DELETED: "Joueur de test supprimé",
+  ADMIN_USER_CREATED: "Administrateur créé",
+  ADMIN_USER_DISABLED: "Administrateur désactivé",
+  ADMIN_USER_REACTIVATED: "Administrateur réactivé",
 };
 
 const exportLabels: Record<AdminExportKind, string> = {
@@ -263,6 +266,7 @@ export function AdminDashboardView({
         </div>
         <div className="admin-account">
           <span>{admin.displayName}</span>
+          <a href="/admin/accounts">Gérer les accès</a>
           <button type="button" onClick={logout}>Se déconnecter</button>
         </div>
       </header>
@@ -366,6 +370,7 @@ export function AdminDashboardView({
               <a href="/admin/sessions">Programmation</a>
               <a href="/admin/questions">Questions</a>
               <a href={`/admin/rewards?event=${encodeURIComponent(selectedEvent)}`}>Lots</a>
+              <a href="/admin/accounts">Administrateurs</a>
               <a href="#exports">Exports</a>
               <a href="#audit">Audit</a>
             </nav>

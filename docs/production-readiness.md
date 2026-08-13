@@ -16,7 +16,7 @@ La fiabilité du moteur, du scoring, du temps serveur, de l’inscription, du cl
 - [x] Raccorder à `/admin` la création des événements et sessions, la configuration de leur ordre de questions et l’ouverture des inscriptions.
 - [x] Ajouter la recherche, la consultation et la désactivation d’un joueur.
 - [x] Ajouter les ajustements de score `ADMIN_ADJUSTMENT` avec motif et audit.
-- [ ] Raccorder la gestion et l’attribution des récompenses.
+- [x] Raccorder la gestion et l’attribution des récompenses.
 - [ ] Produire puis tester un QR code vers l’URL joueur définitive.
 
 Le schéma et plusieurs services métier existent déjà pour certaines de ces capacités, mais une personne MESTE ne peut pas encore les utiliser intégralement sans intervention technique. Cela diverge du critère du cahier des charges selon lequel l’administration doit piloter tout le quiz.
@@ -27,7 +27,9 @@ TASK 14 ajoute `/admin/sessions` pour créer un événement, créer ses sessions
 
 TASK 15 ajoute `/admin/players` pour rechercher un joueur par pseudo ou code public, filtrer son statut, consulter son score calculé depuis le ledger et ses réponses, puis le désactiver. La désactivation révoque ses sessions actives dans la même opération et produit un audit `PLAYER_DISABLED`. Le résultat d’une réponse reste masqué tant que la question n’est pas `REVEALED`. Elle est fusionnée et déployée depuis le 13 août 2026.
 
-TASK 16 complète la fiche joueur avec un ajustement de score exceptionnel rattaché à une session. Un entier positif ou négatif et un motif sont obligatoires, une confirmation précède l’écriture, puis le serveur ajoute atomiquement un événement `ADMIN_ADJUSTMENT` et un audit `SCORE_ADJUSTED`. Le score existant n’est jamais écrasé. La validation PostgreSQL du ledger, du classement recalculé et de l’audit doit être effectuée sur la branche Neon éphémère de la PR avant fusion.
+TASK 16 complète la fiche joueur avec un ajustement de score exceptionnel rattaché à une session. Un entier positif ou négatif et un motif sont obligatoires, une confirmation précède l’écriture, puis le serveur ajoute atomiquement un événement `ADMIN_ADJUSTMENT` et un audit `SCORE_ADJUSTED`. Le score existant n’est jamais écrasé. Elle est fusionnée et déployée depuis le 13 août 2026.
+
+TASK 17 ajoute `/admin/rewards` pour créer et modifier les lots d’un événement, définir une position ou une condition d’attribution, les activer ou désactiver, les attribuer à un joueur du même événement et confirmer leur remise. L’attribution est protégée contre les doublons et produit atomiquement un audit `REWARD_AWARDED` ; la remise conserve l’heure et l’administrateur responsables. La validation PostgreSQL doit être effectuée sur la branche Neon éphémère de la PR avant fusion.
 
 Le seed éditorial du 66e anniversaire prépare 5 catégories, 50 questions sourcées et 6 sessions en brouillon dans le fuseau `Africa/Accra`. Sa procédure sécurisée est documentée dans `docs/seed-independence-66.md`. Il a été validé sur la branche Neon éphémère puis appliqué sur Neon production après création d’un point de restauration et confirmation explicite de l’opérateur.
 
@@ -63,6 +65,8 @@ Tester au minimum sur un iPhone et un Android réels, dont un écran proche de 3
 - [ ] rechercher un joueur par pseudo puis par code public dans `/admin/players` et vérifier son score ainsi que son historique ;
 - [ ] désactiver un joueur de recette, vérifier son audit `PLAYER_DISABLED`, puis confirmer que sa session existante ne donne plus accès au jeu ;
 - [ ] appliquer `+50`, puis `-50` au même joueur avec deux motifs distincts et vérifier le score, le classement, l’historique et les audits `SCORE_ADJUSTED` ;
+- [ ] créer deux lots dans `/admin/rewards`, l’un par position et l’autre par condition, puis désactiver et réactiver le second ;
+- [ ] attribuer un lot à un joueur, vérifier l’audit `REWARD_AWARDED`, refuser une seconde attribution identique puis confirmer la remise et son horodatage ;
 - [ ] couper puis rétablir le réseau sur un téléphone pendant une question ;
 - [ ] télécharger et ouvrir les trois CSV dans Excel et Google Sheets ;
 - [ ] vérifier la navigation clavier de la connexion admin et des réponses joueur ;

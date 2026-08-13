@@ -356,6 +356,7 @@ export function AdminDashboardView({
               <a href="#classement">Classement</a>
               <a href="/admin/sessions">Programmation</a>
               <a href="/admin/questions">Questions</a>
+              <a href={`/admin/rewards?event=${encodeURIComponent(selectedEvent)}`}>Lots</a>
               <a href="#exports">Exports</a>
               <a href="#audit">Audit</a>
             </nav>

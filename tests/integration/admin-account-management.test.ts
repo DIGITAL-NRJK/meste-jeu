@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { eq, inArray, or } from "drizzle-orm";
+import { eq, inArray, or, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -148,7 +148,7 @@ describe("admin account management with PostgreSQL", () => {
     );
   });
 
-  it("refuse atomiquement la désactivation du dernier compte actif", async () => {
+  it("préserve atomiquement au moins un compte actif dans la base partagée", async () => {
     await changeAdminAccountStatus(
       accountId,
       { action: "DISABLE" },
@@ -159,18 +159,34 @@ describe("admin account management with PostgreSQL", () => {
       },
     );
 
-    await expect(
-      changeAdminAccountStatus(actorId, { action: "DISABLE" }, actorId, {
-        repository: postgresAdminAccountManagementRepository,
-        now: () => new Date("2026-08-13T14:00:00.000Z"),
-      }),
-    ).rejects.toBeInstanceOf(AdminAccountLastActiveError);
+    let actorDisabled = false;
+
+    try {
+      const updated = await changeAdminAccountStatus(
+        actorId,
+        { action: "DISABLE" },
+        actorId,
+        {
+          repository: postgresAdminAccountManagementRepository,
+          now: () => new Date("2026-08-13T14:00:00.000Z"),
+        },
+      );
+      actorDisabled = updated.status === "DISABLED";
+    } catch (error) {
+      expect(error).toBeInstanceOf(AdminAccountLastActiveError);
+    }
+
+    const [activeAccounts] = await db
+      .select({ count: sql<number>`count(*)::integer` })
+      .from(adminUsers)
+      .where(eq(adminUsers.status, "ACTIVE"));
+    expect(activeAccounts?.count).toBeGreaterThan(0);
 
     const accounts = await getAdminAccounts(
       postgresAdminAccountManagementRepository,
     );
     expect(accounts.find((account) => account.id === actorId)?.status).toBe(
-      "ACTIVE",
+      actorDisabled ? "DISABLED" : "ACTIVE",
     );
   });
 });

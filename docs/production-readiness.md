@@ -12,7 +12,7 @@ La fiabilité du moteur, du scoring, du temps serveur, de l’inscription, du cl
 
 ## Bloquants fonctionnels issus du cahier des charges
 
-- [x] Raccorder à `/admin` la création, l’édition, la duplication, la validation et l’archivage des questions et catégories.
+- [x] Raccorder à `/admin` la création, l’édition directe, la validation et la suppression protégée des questions, ainsi que la gestion des catégories.
 - [x] Raccorder à `/admin` la création des événements et sessions, la configuration de leur ordre de questions et l’ouverture des inscriptions.
 - [x] Ajouter la recherche, la consultation et la désactivation d’un joueur.
 - [x] Ajouter les ajustements de score `ADMIN_ADJUSTMENT` avec motif et audit.
@@ -38,6 +38,8 @@ TASK 19 ajoute un contexte d’événement `TEST` ou `PRODUCTION`, indépendant 
 Dans un événement `TEST` non clôturé, la régie peut supprimer un joueur même pendant une répétition live. Le serveur supprime atomiquement ses sessions, consentements, réponses, écritures de score et attributions de lots, puis conserve un audit `PLAYER_DELETED` sans donnée secrète. Dans un événement `PRODUCTION`, cette commande est refusée côté serveur : seule la désactivation avec révocation de session reste disponible. Le nom, les dates, le fuseau et le contexte ne sont modifiables qu’en `DRAFT`; le slug et donc le lien joueur restent stables.
 
 TASK 20 ajoute `/admin/accounts` pour créer des accès administrateur nominatifs, désactiver ou réactiver un compte et révoquer immédiatement toutes ses sessions lors de la désactivation. Le mot de passe initial est validé et haché côté serveur, sans jamais revenir dans un DTO ou un log. Le serveur sérialise les changements de statut en base et interdit de désactiver le dernier compte actif. Chaque création et changement de statut produit un audit dédié.
+
+TASK 21 remplace dans `/admin/questions` les commandes de duplication et d’archivage par un parcours plus direct : `Modifier`, `Enregistrer les modifications`, `Annuler` et `Supprimer`. Une édition conserve l’identifiant et le statut de la fiche, donc n’augmente pas le nombre de questions. L’annulation reste entièrement locale et n’écrit rien en base. Le serveur refuse l’édition ou la suppression dès qu’une question appartient à une session prête ou déjà commencée ; une suppression autorisée retire aussi ses occurrences des conducteurs encore en brouillon, puis renumérote leur ordre dans la même transaction.
 
 Le seed éditorial du 66e anniversaire prépare 5 catégories, 50 questions sourcées et 6 sessions en brouillon dans le fuseau `Africa/Accra`. Sa procédure sécurisée est documentée dans `docs/seed-independence-66.md`. Il a été validé sur la branche Neon éphémère puis appliqué sur Neon production après création d’un point de restauration et confirmation explicite de l’opérateur.
 
@@ -89,6 +91,9 @@ Tester au minimum sur un iPhone et un Android réels, dont un écran proche de 3
 - [ ] vérifier les écrans `/admin`, `/admin/questions`, `/admin/sessions`, `/admin/players`, `/admin/rewards` et `/admin/accounts` à 360, 768, 1024 et 1366 px, avec le nom long de l’événement seedé ;
 - [ ] vérifier que le journal, les listes joueurs/lots et les conducteurs longs défilent dans leur panneau sans allonger démesurément la page ;
 - [ ] vérifier au clavier les onglets Contenu, Réponses et Sources d’une fiche question ;
+- [ ] modifier une question validée et ses réponses, vérifier que son identifiant, son statut et le nombre total de fiches restent inchangés ;
+- [ ] annuler une modification et confirmer qu’aucune valeur n’a changé après rechargement ;
+- [ ] supprimer une question non jouée, vérifier sa disparition et confirmer que la suppression d’une question d’une session prête ou commencée est refusée ;
 - [ ] vérifier l’heure et le fuseau configurés pour l’événement ;
 - [ ] scanner le QR code imprimé à plusieurs distances et luminosités.
 

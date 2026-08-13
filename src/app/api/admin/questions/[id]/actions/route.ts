@@ -11,8 +11,6 @@ import {
 import { questionActionInputSchema } from "@/lib/validation/question-library";
 import { postgresQuestionLibraryRepository } from "@/server/repositories/question-library-repository";
 import {
-  archiveQuestion,
-  duplicateQuestion,
   QuestionInputError,
   submitQuestionForReview,
   validateQuestion,
@@ -39,18 +37,14 @@ export async function POST(
     const { id } = await context.params;
     const dependencies = { repository: postgresQuestionLibraryRepository };
     const question =
-      parsed.data.action === "DUPLICATE"
-        ? await duplicateQuestion(id, admin.id, dependencies)
-        : parsed.data.action === "SUBMIT_FOR_REVIEW"
-          ? await submitQuestionForReview(id, admin.id, dependencies)
-          : parsed.data.action === "VALIDATE"
-            ? await validateQuestion(id, admin.id, dependencies)
-            : await archiveQuestion(id, admin.id, dependencies);
+      parsed.data.action === "SUBMIT_FOR_REVIEW"
+        ? await submitQuestionForReview(id, admin.id, dependencies)
+        : await validateQuestion(id, admin.id, dependencies);
 
     return NextResponse.json(
       { question },
       {
-        status: parsed.data.action === "DUPLICATE" ? 201 : 200,
+        status: 200,
         headers: adminLibraryHeaders,
       },
     );

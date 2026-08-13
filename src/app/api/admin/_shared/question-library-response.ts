@@ -13,6 +13,7 @@ import {
   QuestionNotEditableError,
   QuestionNotFoundError,
   QuestionNotReadyError,
+  QuestionProtectedError,
 } from "@/server/services/question-library";
 
 export const adminLibraryHeaders = { "Cache-Control": "no-store" };
@@ -88,7 +89,20 @@ export function adminLibraryErrorResponse(error: unknown) {
       {
         error: {
           code: "QUESTION_NOT_EDITABLE",
-          message: "Une question validée ou archivée ne peut plus être modifiée.",
+          message: "Une question archivée ne peut plus être modifiée.",
+        },
+      },
+      { status: 409, headers: adminLibraryHeaders },
+    );
+  }
+
+  if (error instanceof QuestionProtectedError) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "QUESTION_PROTECTED",
+          message:
+            "Cette question appartient à une session prête ou déjà jouée. Repassez d’abord la session en brouillon si elle n’a pas commencé.",
         },
       },
       { status: 409, headers: adminLibraryHeaders },

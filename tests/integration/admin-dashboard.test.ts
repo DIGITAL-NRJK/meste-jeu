@@ -214,7 +214,11 @@ describe("admin authentication and dashboard with PostgreSQL", () => {
       now: () => now,
     });
     expect(dashboard).toMatchObject({
-      event: { id: eventId, status: "LIVE" },
+      event: {
+        id: eventId,
+        environment: "PRODUCTION",
+        status: "LIVE",
+      },
       participants: { registered: 2, activeRecently: 1 },
       session: { id: sessionId, status: "LIVE", questionCount: 1 },
       currentQuestion: {

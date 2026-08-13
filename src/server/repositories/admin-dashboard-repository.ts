@@ -162,6 +162,7 @@ async function getDashboard(event: AdminEventOption, now: Date) {
         'id', ${event.id}::uuid,
         'slug', ${event.slug}::text,
         'name', ${event.name}::text,
+        'environment', ${event.environment}::text,
         'status', ${event.status}::text
       ),
       'participants', jsonb_build_object(

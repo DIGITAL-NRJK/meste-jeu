@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   localDateTimeToUtcIso,
   type TimeZoneOption,
+  utcIsoToLocalDateTime,
 } from "@/lib/date/timezone";
 import type { AdminIdentity } from "@/server/services/admin-auth";
 import type { AdminEventDetail } from "@/server/services/admin-programming";
@@ -62,6 +63,15 @@ type SessionFormState = {
   resetScore: boolean;
 };
 
+type EventFormState = {
+  name: string;
+  description: string;
+  startsAt: string;
+  endsAt: string;
+  timezone: string;
+  environment: "TEST" | "PRODUCTION";
+};
+
 const statusLabels = {
   DRAFT: "Brouillon",
   READY: "Prête",
@@ -77,13 +87,25 @@ const difficultyLabels = {
   4: "Expert",
 } as const;
 
-function eventFormDefaults() {
+function eventFormDefaults(event?: AdminEventView): EventFormState {
+  if (event) {
+    return {
+      name: event.name,
+      description: event.description ?? "",
+      startsAt: utcIsoToLocalDateTime(event.startsAt, event.timezone),
+      endsAt: utcIsoToLocalDateTime(event.endsAt, event.timezone),
+      timezone: event.timezone,
+      environment: event.environment,
+    };
+  }
+
   return {
     name: "",
     description: "",
     startsAt: "",
     endsAt: "",
     timezone: "Africa/Brazzaville",
+    environment: "PRODUCTION",
   };
 }
 
@@ -146,6 +168,7 @@ export function AdminProgrammingView({
   );
   const [questionSearch, setQuestionSearch] = useState("");
   const [showEventForm, setShowEventForm] = useState(!initialEvent);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [eventForm, setEventForm] = useState(eventFormDefaults);
   const [sessionForm, setSessionForm] = useState<SessionFormState>(
@@ -188,45 +211,78 @@ export function AdminProgrammingView({
     return true;
   }
 
-  async function createEvent(eventSubmit: FormEvent<HTMLFormElement>) {
+  async function saveEvent(eventSubmit: FormEvent<HTMLFormElement>) {
     eventSubmit.preventDefault();
     setPending(true);
     setMessage(null);
 
     try {
-      const response = await fetch("/api/admin/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...eventForm,
-          startsAt: localDateTimeToUtcIso(
-            eventForm.startsAt,
-            eventForm.timezone,
-          ),
-          endsAt: localDateTimeToUtcIso(
-            eventForm.endsAt,
-            eventForm.timezone,
-          ),
-        }),
-      });
+      const response = await fetch(
+        editingEventId
+          ? `/api/admin/events/${editingEventId}`
+          : "/api/admin/events",
+        {
+          method: editingEventId ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...eventForm,
+            startsAt: localDateTimeToUtcIso(
+              eventForm.startsAt,
+              eventForm.timezone,
+            ),
+            endsAt: localDateTimeToUtcIso(
+              eventForm.endsAt,
+              eventForm.timezone,
+            ),
+          }),
+        },
+      );
       if (handleUnauthorized(response)) return;
       if (!response.ok) throw await responseError(response);
 
       const payload = (await response.json()) as { event: AdminEventView };
-      setEvents((current) => [payload.event, ...current]);
+      setEvents((current) =>
+        editingEventId
+          ? current.map((candidate) =>
+              candidate.id === payload.event.id ? payload.event : candidate,
+            )
+          : [payload.event, ...current],
+      );
       setEvent(payload.event);
-      setSessions([]);
-      setSelectedSessionId("");
-      setLineup([]);
+      if (!editingEventId) {
+        setSessions([]);
+        setSelectedSessionId("");
+        setLineup([]);
+      }
       setEventForm(eventFormDefaults());
+      setEditingEventId(null);
       setShowEventForm(false);
-      setMessage("Événement créé. Ajoutez maintenant sa première session.");
+      setMessage(
+        editingEventId
+          ? "Événement mis à jour. Son lien joueur reste inchangé."
+          : "Événement créé. Ajoutez maintenant sa première session.",
+      );
       router.replace(`/admin/sessions?event=${encodeURIComponent(payload.event.slug)}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Création impossible.");
     } finally {
       setPending(false);
     }
+  }
+
+  function openNewEventForm() {
+    setEditingEventId(null);
+    setEventForm(eventFormDefaults());
+    setShowEventForm(true);
+    setMessage(null);
+  }
+
+  function openEventEditor() {
+    if (!event || event.status !== "DRAFT") return;
+    setEditingEventId(event.id);
+    setEventForm(eventFormDefaults(event));
+    setShowEventForm(true);
+    setMessage(null);
   }
 
   async function createSession(sessionSubmit: FormEvent<HTMLFormElement>) {
@@ -346,8 +402,26 @@ export function AdminProgrammingView({
     }
   }
 
-  async function markEventReady() {
+  async function runEventAction(
+    action: "MARK_READY" | "RESET_DRAFT" | "FINISH",
+  ) {
     if (!event) return;
+    if (
+      action === "RESET_DRAFT" &&
+      !window.confirm(
+        "Repasser cet événement en brouillon ? La question ouverte sera fermée, la session en direct sera remise en attente et tous les résultats seront conservés.",
+      )
+    ) {
+      return;
+    }
+    if (
+      action === "FINISH" &&
+      !window.confirm(
+        "Clôturer définitivement cet événement ? Les sessions non jouées seront annulées et aucun retour en brouillon ne sera possible.",
+      )
+    ) {
+      return;
+    }
     setPending(true);
     setMessage(null);
 
@@ -355,19 +429,34 @@ export function AdminProgrammingView({
       const response = await fetch(`/api/admin/events/${event.id}/actions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "MARK_READY" }),
+        body: JSON.stringify({ action }),
       });
       if (handleUnauthorized(response)) return;
       if (!response.ok) throw await responseError(response);
 
-      const payload = (await response.json()) as { event: AdminEventView };
+      const payload = (await response.json()) as {
+        event: AdminEventView;
+        sessions: AdminSessionView[];
+      };
       setEvent(payload.event);
+      setSessions(payload.sessions);
+      const refreshedSelected =
+        payload.sessions.find(({ id }) => id === selectedSessionId) ??
+        payload.sessions[0];
+      setSelectedSessionId(refreshedSelected?.id ?? "");
+      setLineup(lineupFromSession(refreshedSelected));
       setEvents((current) =>
         current.map((candidate) =>
           candidate.id === payload.event.id ? payload.event : candidate,
         ),
       );
-      setMessage("Inscriptions ouvertes : l’événement est prêt côté joueur.");
+      setMessage(
+        action === "MARK_READY"
+          ? "Inscriptions ouvertes : l’événement est prêt côté joueur."
+          : action === "RESET_DRAFT"
+            ? "Événement repassé en brouillon. Les résultats existants sont conservés."
+            : "Événement clôturé définitivement.",
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Transition impossible.");
     } finally {
@@ -417,33 +506,63 @@ export function AdminProgrammingView({
                 }}
               >
                 {events.map((candidate) => (
-                  <option key={candidate.id} value={candidate.slug}>{candidate.name}</option>
+                  <option key={candidate.id} value={candidate.slug}>
+                    {candidate.environment === "TEST" ? "[TEST] " : ""}
+                    {candidate.name}
+                  </option>
                 ))}
               </select>
             </label>
           ) : <strong>Aucun événement programmé</strong>}
           <div className="programming-event-actions">
-            {event ? <span className={`admin-status admin-status--${event.status.toLowerCase()}`}>{statusLabels[event.status]}</span> : null}
+            {event ? (
+              <>
+                <span className={`admin-environment admin-environment--${event.environment.toLowerCase()}`}>
+                  {event.environment === "TEST" ? "Test" : "Production"}
+                </span>
+                <span className={`admin-status admin-status--${event.status.toLowerCase()}`}>{statusLabels[event.status]}</span>
+              </>
+            ) : null}
             {event?.status === "DRAFT" ? (
-              <button type="button" disabled={pending || !hasReadySession} onClick={markEventReady}>
+              <button type="button" disabled={pending || !hasReadySession} onClick={() => runEventAction("MARK_READY")}>
                 Ouvrir les inscriptions
               </button>
             ) : null}
-            <button type="button" className="programming-secondary-action" onClick={() => setShowEventForm((open) => !open)}>
-              {showEventForm ? "Fermer" : "Nouvel événement"}
+            {event?.status === "DRAFT" ? (
+              <button type="button" className="programming-secondary-action" onClick={openEventEditor}>
+                Modifier
+              </button>
+            ) : null}
+            {event && event.status !== "DRAFT" && event.status !== "FINISHED" ? (
+              <button type="button" className="programming-secondary-action" disabled={pending} onClick={() => runEventAction("RESET_DRAFT")}>
+                Repasser en brouillon
+              </button>
+            ) : null}
+            {event && event.status !== "FINISHED" ? (
+              <button type="button" className="programming-danger-action" disabled={pending} onClick={() => runEventAction("FINISH")}>
+                Clôturer
+              </button>
+            ) : null}
+            <button type="button" className="programming-secondary-action" onClick={openNewEventForm}>
+              Nouvel événement
             </button>
           </div>
         </section>
 
         {showEventForm ? (
-          <form className="programming-creation-form" onSubmit={createEvent}>
-            <header><p className="eyebrow">Cadre</p><h2>Créer un événement</h2></header>
+          <form className="programming-creation-form" onSubmit={saveEvent}>
+            <header><p className="eyebrow">Cadre</p><h2>{editingEventId ? "Modifier l’événement" : "Créer un événement"}</h2></header>
             <label><span>Nom</span><input required minLength={3} maxLength={150} value={eventForm.name} onChange={(change) => setEventForm({ ...eventForm, name: change.target.value })} /></label>
             <label className="programming-wide"><span>Description</span><textarea rows={2} maxLength={1000} value={eventForm.description} onChange={(change) => setEventForm({ ...eventForm, description: change.target.value })} /></label>
             <label><span>Début</span><input required type="datetime-local" value={eventForm.startsAt} onChange={(change) => setEventForm({ ...eventForm, startsAt: change.target.value })} /></label>
             <label><span>Fin</span><input required type="datetime-local" value={eventForm.endsAt} onChange={(change) => setEventForm({ ...eventForm, endsAt: change.target.value })} /></label>
             <label><span>Fuseau horaire</span><select required value={eventForm.timezone} onChange={(change) => setEventForm({ ...eventForm, timezone: change.target.value })}>{timeZoneOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-            <button type="submit" disabled={pending}>{pending ? "Création…" : "Créer l’événement"}</button>
+            <label><span>Contexte</span><select required value={eventForm.environment} onChange={(change) => setEventForm({ ...eventForm, environment: change.target.value as "TEST" | "PRODUCTION" })}><option value="PRODUCTION">Production — joueurs conservés</option><option value="TEST">Test — joueurs supprimables</option></select></label>
+            <p className="programming-wide programming-form-help">Le contexte peut être modifié uniquement en brouillon. En production, un joueur peut être désactivé mais jamais supprimé.</p>
+            <div className="programming-form-actions">
+              <button type="submit" disabled={pending}>{pending ? "Enregistrement…" : editingEventId ? "Enregistrer" : "Créer l’événement"}</button>
+              <button type="button" className="programming-secondary-action" onClick={() => { setShowEventForm(false); setEditingEventId(null); setEventForm(eventFormDefaults()); }}>Annuler</button>
+            </div>
           </form>
         ) : null}
 
@@ -452,10 +571,11 @@ export function AdminProgrammingView({
             <section className="programming-event-summary">
               <div><small>Fenêtre événement</small><strong>{formatDate(event.startsAt, event.timezone)} → {formatDate(event.endsAt, event.timezone)}</strong></div>
               <div><small>Fuseau</small><strong>{event.timezone}</strong></div>
+              <div><small>Contexte</small><strong>{event.environment === "TEST" ? "Test — joueurs supprimables" : "Production — joueurs conservés"}</strong></div>
               <div><small>Accès joueur</small><strong>{event.status === "READY" || event.status === "LIVE" ? "Inscriptions ouvertes" : "Fermé pendant la préparation"}</strong></div>
             </section>
 
-            {showSessionForm ? (
+            {showSessionForm && event.status === "DRAFT" ? (
               <form className="programming-creation-form" onSubmit={createSession}>
                 <header><p className="eyebrow">Séquence</p><h2>Nouvelle session</h2></header>
                 <label><span>Nom</span><input required minLength={3} maxLength={150} value={sessionForm.name} onChange={(change) => setSessionForm({ ...sessionForm, name: change.target.value })} /></label>
@@ -471,7 +591,7 @@ export function AdminProgrammingView({
               <aside className="programming-session-index">
                 <div className="programming-section-heading">
                   <div><p className="eyebrow">Sessions</p><h2>{sessions.length} séquence{sessions.length > 1 ? "s" : ""}</h2></div>
-                  <button type="button" onClick={() => setShowSessionForm((open) => !open)}>{showSessionForm ? "Fermer" : "Nouvelle"}</button>
+                  {event.status === "DRAFT" ? <button type="button" onClick={() => setShowSessionForm((open) => !open)}>{showSessionForm ? "Fermer" : "Nouvelle"}</button> : null}
                 </div>
                 <div className="programming-session-list">
                   {sessions.length ? sessions.map((session) => (
@@ -480,7 +600,7 @@ export function AdminProgrammingView({
                       <strong>{session.name}</strong>
                       <small>{session.mode === "LIVE" ? "Live" : "Découverte"} · {session.questions.length} question{session.questions.length > 1 ? "s" : ""}</small>
                     </button>
-                  )) : <div className="programming-empty"><strong>Première séquence à créer</strong><p>Une session rassemble les questions qui seront jouées dans l’ordre.</p><button type="button" onClick={() => setShowSessionForm(true)}>Créer une session</button></div>}
+                  )) : <div className="programming-empty"><strong>Première séquence à créer</strong><p>Une session rassemble les questions qui seront jouées dans l’ordre.</p>{event.status === "DRAFT" ? <button type="button" onClick={() => setShowSessionForm(true)}>Créer une session</button> : null}</div>}
                 </div>
               </aside>
 

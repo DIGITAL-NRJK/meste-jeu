@@ -218,6 +218,12 @@ describe("session engine with PostgreSQL", () => {
       sessionDependencies,
     );
     expect(live).toMatchObject({ status: "LIVE", startsAt: serverNow });
+    await expect(
+      db
+        .select({ status: events.status })
+        .from(events)
+        .where(eq(events.id, eventId)),
+    ).resolves.toEqual([{ status: "LIVE" }]);
 
     expect(
       (await getPublicSessionState(session.id, sessionDependencies))
@@ -272,7 +278,7 @@ describe("session engine with PostgreSQL", () => {
     await expect(
       postgresPlayerGameRepository.findEventState(eventSlug),
     ).resolves.toMatchObject({
-      event: { slug: eventSlug, status: "READY" },
+      event: { slug: eventSlug, status: "LIVE" },
       session: {
         id: session.id,
         status: "LIVE",

@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   AdminPlayerAlreadyDisabledError,
+  AdminPlayerDeletionForbiddenError,
   AdminPlayerEventNotFoundError,
   AdminPlayerInputError,
   AdminPlayerNotFoundError,
   AdminPlayerSessionNotFoundError,
   adjustAdminPlayerScore,
+  deleteAdminTestPlayer,
   disableAdminPlayer,
   getAdminPlayer,
   getAdminPlayerManagement,
@@ -18,6 +20,7 @@ const event = {
   id: "00000000-0000-4000-8000-000000000001",
   slug: "independance-congo-66",
   name: "Tombola — 66e anniversaire",
+  environment: "TEST" as const,
   status: "READY" as const,
 };
 const playerId = "00000000-0000-4000-8000-000000000002";
@@ -58,6 +61,7 @@ function repository(
     listPlayers: vi.fn(async () => [player]),
     getPlayer: vi.fn(async () => player),
     disablePlayer: vi.fn(async () => "disabled" as const),
+    deletePlayer: vi.fn(async () => "deleted" as const),
     appendScoreAdjustment: vi.fn(async () => "created" as const),
     ...overrides,
   };
@@ -138,6 +142,38 @@ describe("admin player management service", () => {
       }),
     ).rejects.toBeInstanceOf(AdminPlayerAlreadyDisabledError);
   });
+
+  it("supprime un joueur uniquement quand le repository confirme le contexte test", async () => {
+    const playerRepository = repository();
+
+    await expect(
+      deleteAdminTestPlayer(playerId, adminId, {
+        repository: playerRepository,
+        now: () => now,
+      }),
+    ).resolves.toEqual({ deletedPlayerId: playerId });
+    expect(playerRepository.deletePlayer).toHaveBeenCalledWith({
+      playerId,
+      actorAdminId: adminId,
+      now,
+    });
+  });
+
+  it.each(["production_event", "finished_event"] as const)(
+    "refuse la suppression quand le contexte vaut %s",
+    async (outcome) => {
+      await expect(
+        deleteAdminTestPlayer(playerId, adminId, {
+          repository: repository({
+            deletePlayer: vi.fn(async () => outcome),
+          }),
+        }),
+      ).rejects.toMatchObject({
+        name: AdminPlayerDeletionForbiddenError.name,
+        reason: outcome,
+      });
+    },
+  );
 
   it.each([50, -50])(
     "ajoute un ajustement signé de %i points sans écraser le score",

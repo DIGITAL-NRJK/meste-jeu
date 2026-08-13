@@ -1112,6 +1112,12 @@ input:focus-visible {
   color: var(--text-primary);
 }
 
+.admin-event-select small {
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
 .admin-login-form input {
   margin-bottom: 0.55rem;
   padding: 0 1rem;
@@ -3068,6 +3074,7 @@ input:focus-visible {
 
 .programming-event-actions button,
 .programming-creation-form > button,
+.programming-form-actions button,
 .programming-section-heading > button,
 .programming-empty button,
 .programming-lineup footer button {
@@ -3088,9 +3095,35 @@ input:focus-visible {
 }
 
 .programming-event-actions .programming-secondary-action,
+.programming-form-actions .programming-secondary-action,
 .programming-lineup footer .programming-secondary-action {
   border: 1px solid rgb(242 193 78 / 28%);
   background: transparent;
+  color: var(--brand-accent);
+}
+
+.programming-event-actions .programming-danger-action {
+  border: 1px solid rgb(238 131 121 / 55%);
+  background: rgb(238 131 121 / 10%);
+  color: #ffaaa2;
+}
+
+.admin-environment {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-environment--test {
+  border-color: rgb(242 193 78 / 55%);
   color: var(--brand-accent);
 }
 
@@ -3117,6 +3150,20 @@ input:focus-visible {
 
 .programming-creation-form > button {
   align-self: end;
+}
+
+.programming-form-help {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.programming-form-actions {
+  display: flex;
+  align-items: center;
+  align-self: end;
+  gap: 0.6rem;
 }
 
 .programming-checkbox {
@@ -3475,12 +3522,19 @@ input:focus-visible {
   }
 
   .programming-event-summary {
-    grid-template-columns: 1.4fr 0.7fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .programming-event-summary div {
     border-right: 1px solid var(--border);
-    border-bottom: 0;
+  }
+
+  .programming-event-summary div:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .programming-event-summary div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--border);
   }
 
   .programming-event-summary div:last-child {
@@ -3499,6 +3553,20 @@ input:focus-visible {
 }
 
 @media (min-width: 72rem) {
+  .programming-event-summary {
+    grid-template-columns: 1.4fr 0.7fr 1fr 1fr;
+  }
+
+  .programming-event-summary div,
+  .programming-event-summary div:nth-child(-n + 2) {
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+
+  .programming-event-summary div:last-child {
+    border-right: 0;
+  }
+
   .programming-workspace {
     grid-template-columns: minmax(18rem, 0.58fr) minmax(42rem, 1.6fr);
     align-items: start;
@@ -3647,13 +3715,15 @@ input:focus-visible {
 .player-management-filters input:focus-visible,
 .player-management-filters select:focus-visible,
 .player-management-list > button:focus-visible,
-.player-disable-panel button:focus-visible {
+.player-disable-panel button:focus-visible,
+.player-delete-panel button:focus-visible {
   outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
 }
 
 .player-management-filters > button,
-.player-disable-panel button {
+.player-disable-panel button,
+.player-delete-panel button {
   min-height: 3rem;
   padding: 0 1rem;
   border: 0;
@@ -3665,7 +3735,8 @@ input:focus-visible {
 }
 
 .player-management-filters > button:disabled,
-.player-disable-panel button:disabled {
+.player-disable-panel button:disabled,
+.player-delete-panel button:disabled {
   cursor: wait;
   opacity: 0.55;
 }
@@ -3968,7 +4039,8 @@ input:focus-visible {
   line-height: 1.4;
 }
 
-.player-disable-panel {
+.player-disable-panel,
+.player-delete-panel {
   display: grid;
   margin-top: 1rem;
   gap: 1rem;
@@ -3978,7 +4050,8 @@ input:focus-visible {
   background: rgb(238 131 121 / 6%);
 }
 
-.player-disable-panel p {
+.player-disable-panel p,
+.player-delete-panel p {
   margin: 0.35rem 0 0;
   color: var(--text-secondary);
   font-size: 0.75rem;
@@ -3986,6 +4059,15 @@ input:focus-visible {
 }
 
 .player-disable-panel button {
+  background: #ffaaa2;
+}
+
+.player-delete-panel {
+  border-color: rgb(242 193 78 / 40%);
+  background: rgb(242 193 78 / 7%);
+}
+
+.player-delete-panel button {
   background: #ffaaa2;
 }
 
@@ -4057,7 +4139,8 @@ input:focus-visible {
     align-items: end;
   }
 
-  .player-disable-panel {
+  .player-disable-panel,
+  .player-delete-panel {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }

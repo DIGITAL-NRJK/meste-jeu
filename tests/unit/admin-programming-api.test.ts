@@ -6,10 +6,13 @@ import { ADMIN_SESSION_COOKIE_NAME } from "../../src/lib/auth/admin-session";
 const authRepository = vi.hoisted(() => ({ findActiveSession: vi.fn() }));
 const programmingRepository = vi.hoisted(() => ({
   createEvent: vi.fn(),
+  updateEvent: vi.fn(),
   listEvents: vi.fn(),
   listSessions: vi.fn(),
   getEvent: vi.fn(),
   markEventReady: vi.fn(),
+  resetEventToDraft: vi.fn(),
+  finishEvent: vi.fn(),
 }));
 const sessionRepository = vi.hoisted(() => ({
   createSession: vi.fn(),
@@ -42,6 +45,7 @@ vi.mock("@/server/repositories/session-engine-repository", () => ({
 
 import { POST as createEvent } from "../../src/app/api/admin/events/route";
 import { POST as runEventAction } from "../../src/app/api/admin/events/[id]/actions/route";
+import { PUT as updateEvent } from "../../src/app/api/admin/events/[id]/route";
 import { POST as createSession } from "../../src/app/api/admin/sessions/route";
 import { PUT as configureLineup } from "../../src/app/api/admin/sessions/[id]/lineup/route";
 
@@ -60,6 +64,7 @@ const event = {
   startsAt: new Date("2026-08-15T16:00:00.000Z"),
   endsAt: new Date("2026-08-15T22:00:00.000Z"),
   timezone: "Africa/Brazzaville",
+  environment: "PRODUCTION" as const,
   status: "DRAFT" as const,
   createdAt: now,
   updatedAt: now,
@@ -101,7 +106,11 @@ describe("admin programming API", () => {
       displayName: "Régie MESTE",
     });
     programmingRepository.createEvent.mockResolvedValue(event);
+    programmingRepository.updateEvent.mockResolvedValue("updated");
     programmingRepository.markEventReady.mockResolvedValue("transitioned");
+    programmingRepository.resetEventToDraft.mockResolvedValue("transitioned");
+    programmingRepository.finishEvent.mockResolvedValue("transitioned");
+    programmingRepository.listSessions.mockResolvedValue([session]);
     programmingRepository.getEvent.mockResolvedValue({ ...event, status: "READY" });
     sessionRepository.createSession.mockResolvedValue(session);
     sessionRepository.getSession.mockResolvedValue(session);
@@ -178,5 +187,51 @@ describe("admin programming API", () => {
       eventId,
       expect.any(Date),
     );
+  });
+
+  it("met à jour un événement brouillon avec l’identité administrateur", async () => {
+    programmingRepository.getEvent.mockResolvedValue({
+      ...event,
+      environment: "TEST",
+    });
+    const response = await updateEvent(
+      request(`http://localhost/api/admin/events/${eventId}`, {
+        name: event.name,
+        description: event.description ?? "",
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+        timezone: event.timezone,
+        environment: "TEST",
+      }),
+      { params: Promise.resolve({ id: eventId }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(programmingRepository.updateEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: eventId,
+        actorAdminId: adminId,
+        environment: "TEST",
+      }),
+    );
+  });
+
+  it("repasse un événement live en brouillon et renvoie les sessions actualisées", async () => {
+    programmingRepository.getEvent.mockResolvedValue(event);
+    const response = await runEventAction(
+      request(`http://localhost/api/admin/events/${eventId}/actions`, {
+        action: "RESET_DRAFT",
+      }),
+      { params: Promise.resolve({ id: eventId }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(programmingRepository.resetEventToDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ eventId, actorAdminId: adminId }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      event: { status: "DRAFT" },
+      sessions: [{ id: sessionId }],
+    });
   });
 });

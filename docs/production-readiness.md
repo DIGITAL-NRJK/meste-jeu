@@ -31,9 +31,11 @@ TASK 16 complète la fiche joueur avec un ajustement de score exceptionnel ratta
 
 TASK 17 ajoute `/admin/rewards` pour créer et modifier les lots d’un événement, définir une position ou une condition d’attribution, les activer ou désactiver, les attribuer à un joueur du même événement et confirmer leur remise. L’attribution est protégée contre les doublons et produit atomiquement un audit `REWARD_AWARDED` ; la remise conserve l’heure et l’administrateur responsables. Elle est fusionnée et déployée depuis le 13 août 2026.
 
-TASK 18 borne les listes opérationnelles longues dans des zones de défilement internes, compacte la fiche question en sections, sécurise la troncature des noms d’événements et assouplit les grilles aux largeurs tablette et mobile. Elle ne modifie ni le moteur de jeu ni les données.
+TASK 18 borne les listes opérationnelles longues dans des zones de défilement internes, compacte la fiche question en sections, sécurise la troncature des noms d’événements et assouplit les grilles aux largeurs tablette et mobile. Elle est fusionnée et déployée depuis le 13 août 2026.
 
-TASK 19 devra formaliser le mode de recette demandé par l’opérateur. Tant qu’un événement n’est pas `FINISHED`, un retour contrôlé vers `DRAFT` doit rester possible. La suppression d’un joueur sera réservée au contexte de test ; pendant un vrai `LIVE`, seule la désactivation restera autorisée. Les effets sur les réponses, scores, récompenses et audits devront être définis avant migration.
+TASK 19 ajoute un contexte d’événement `TEST` ou `PRODUCTION`, indépendant des statuts `DRAFT`, `READY`, `LIVE` et `FINISHED`. Le démarrage d’une session synchronise l’événement en `LIVE`. Tant qu’il n’est pas `FINISHED`, l’opérateur peut le repasser en `DRAFT` : une question ouverte est fermée au temps serveur, une session live repasse en `READY`, et les réponses, scores et classements restent conservés. La clôture `FINISHED` est explicite, refuse une session encore live et annule les sessions non jouées.
+
+Dans un événement `TEST` non clôturé, la régie peut supprimer un joueur même pendant une répétition live. Le serveur supprime atomiquement ses sessions, consentements, réponses, écritures de score et attributions de lots, puis conserve un audit `PLAYER_DELETED` sans donnée secrète. Dans un événement `PRODUCTION`, cette commande est refusée côté serveur : seule la désactivation avec révocation de session reste disponible. Le nom, les dates, le fuseau et le contexte ne sont modifiables qu’en `DRAFT`; le slug et donc le lien joueur restent stables.
 
 Le seed éditorial du 66e anniversaire prépare 5 catégories, 50 questions sourcées et 6 sessions en brouillon dans le fuseau `Africa/Accra`. Sa procédure sécurisée est documentée dans `docs/seed-independence-66.md`. Il a été validé sur la branche Neon éphémère puis appliqué sur Neon production après création d’un point de restauration et confirmation explicite de l’opérateur.
 
@@ -66,6 +68,10 @@ Tester au minimum sur un iPhone et un Android réels, dont un écran proche de 3
 - [ ] annuler une question et vérifier la disparition des points associés ;
 - [ ] exécuter le cycle complet depuis un second appareil connecté à `/admin` ;
 - [ ] créer un événement et une session depuis `/admin/sessions`, enregistrer l’ordre, rendre la session prête puis ouvrir les inscriptions ;
+- [ ] créer un événement `TEST`, démarrer une session, revenir en `DRAFT` et vérifier que la session repasse en `READY` sans perte des réponses ni des scores ;
+- [ ] modifier en `DRAFT` le nom, les dates, le fuseau et le contexte, puis vérifier que le lien joueur conserve le même slug ;
+- [ ] supprimer un joueur du contexte `TEST` et vérifier l’audit `PLAYER_DELETED`, puis confirmer que la même commande est impossible sur un événement `PRODUCTION` ;
+- [ ] clôturer un événement sans session live, vérifier l’annulation des sessions non jouées et confirmer que le retour en `DRAFT` est ensuite refusé ;
 - [ ] rechercher un joueur par pseudo puis par code public dans `/admin/players` et vérifier son score ainsi que son historique ;
 - [ ] désactiver un joueur de recette, vérifier son audit `PLAYER_DISABLED`, puis confirmer que sa session existante ne donne plus accès au jeu ;
 - [ ] appliquer `+50`, puis `-50` au même joueur avec deux motifs distincts et vérifier le score, le classement, l’historique et les audits `SCORE_ADJUSTED` ;

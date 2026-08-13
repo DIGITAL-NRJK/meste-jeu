@@ -51,6 +51,7 @@ const event = {
   id: "00000000-0000-4000-8000-000000000002",
   slug: "heritage-congo-2026",
   name: "Héritage Congo 2026",
+  environment: "PRODUCTION",
   status: "LIVE",
 };
 

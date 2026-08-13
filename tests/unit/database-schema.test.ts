@@ -77,4 +77,15 @@ describe("initial PostgreSQL migration", () => {
     expect(migrationSql).toContain("score_events_admin_adjustment_author_check");
     expect(migrationSql).toContain("score_events_active_leaderboard_idx");
   });
+
+  it("sépare le contexte test du cycle de vie des événements", () => {
+    expect(migrationSql).toContain(
+      'CREATE TYPE "public"."event_environment" AS ENUM(\'TEST\', \'PRODUCTION\')',
+    );
+    expect(migrationSql).toContain(
+      'ADD COLUMN "environment" "event_environment" DEFAULT \'PRODUCTION\' NOT NULL',
+    );
+    expect(migrationSql).toContain("EVENT_RESET_DRAFT");
+    expect(migrationSql).toContain("PLAYER_DELETED");
+  });
 });

@@ -405,26 +405,45 @@ async function startSession(
     WITH state AS (
       SELECT
         session.id,
+        session.event_id,
         session.status::text AS status,
+        event.status::text AS event_status,
         count(occurrence.id)::integer AS question_count,
         count(occurrence.id) FILTER (
           WHERE question.status <> 'VALIDATED'
         )::integer AS invalid_question_count
       FROM ${quizSessions} AS session
+      INNER JOIN ${events} AS event ON event.id = session.event_id
       LEFT JOIN ${sessionQuestions} AS occurrence
         ON occurrence.quiz_session_id = session.id
       LEFT JOIN ${questions} AS question ON question.id = occurrence.question_id
       WHERE session.id = ${sessionId}::uuid
-      GROUP BY session.id, session.status
+      GROUP BY session.id, session.event_id, session.status, event.status
+    ), eligible AS (
+      SELECT *
+      FROM state
+      WHERE status = 'READY'
+        AND event_status IN ('READY', 'LIVE')
+        AND question_count > 0
+        AND invalid_question_count = 0
+    ), updated_event AS (
+      UPDATE ${events} AS event
+      SET status = 'LIVE', updated_at = ${now}
+      FROM eligible
+      WHERE event.id = eligible.event_id
+        AND event.status IN ('READY', 'LIVE')
+      RETURNING event.id
     ), updated AS (
       UPDATE ${quizSessions} AS session
-      SET status = 'LIVE', starts_at = ${now}, ends_at = NULL, updated_at = ${now}
-      FROM state
-      WHERE session.id = state.id
-        AND state.status = 'READY'
-        AND state.question_count > 0
-        AND state.invalid_question_count = 0
-      RETURNING session.id
+      SET
+        status = 'LIVE',
+        starts_at = COALESCE(session.starts_at, ${now}),
+        ends_at = NULL,
+        updated_at = ${now}
+      FROM eligible
+      INNER JOIN updated_event ON updated_event.id = eligible.event_id
+      WHERE session.id = eligible.id
+      RETURNING session.id, session.event_id
     ), written_audit AS (
       INSERT INTO ${auditLogs} (
         admin_user_id, action, entity_type, entity_id, metadata, created_at
@@ -437,12 +456,15 @@ async function startSession(
         '{}'::jsonb,
         ${now}
       FROM updated
+      INNER JOIN updated_event ON updated_event.id = updated.event_id
       RETURNING id
     )
     SELECT CASE
       WHEN NOT EXISTS (SELECT 1 FROM state) THEN 'NOT_FOUND'
       WHEN EXISTS (SELECT 1 FROM written_audit) THEN 'TRANSITIONED'
-      WHEN (SELECT status FROM state) <> 'READY' THEN 'INVALID_STATUS'
+      WHEN (SELECT status FROM state) <> 'READY'
+        OR (SELECT event_status FROM state) NOT IN ('READY', 'LIVE')
+        THEN 'INVALID_STATUS'
       WHEN (SELECT question_count FROM state) = 0 THEN 'NO_QUESTIONS'
       ELSE 'UNVALIDATED_QUESTIONS'
     END AS outcome

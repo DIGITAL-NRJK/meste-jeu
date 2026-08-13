@@ -12,6 +12,7 @@ import { postgresAdminPlayerManagementRepository } from "@/server/repositories/a
 import {
   AdminPlayerInputError,
   adjustAdminPlayerScore,
+  deleteAdminTestPlayer,
   disableAdminPlayer,
 } from "@/server/services/admin-player-management";
 
@@ -49,6 +50,25 @@ export async function POST(
     if (!player) throw new AdminPlayerInputError();
 
     return NextResponse.json({ player }, { headers: adminPlayerHeaders });
+  } catch (error) {
+    return adminPlayerErrorResponse(error);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: PlayerActionRouteContext,
+) {
+  const admin = await authenticateAdminPlayerRequest(request);
+  if (!admin) return unauthenticatedAdminPlayerResponse();
+
+  try {
+    const { id } = await context.params;
+    const result = await deleteAdminTestPlayer(id, admin.id, {
+      repository: postgresAdminPlayerManagementRepository,
+    });
+
+    return NextResponse.json(result, { headers: adminPlayerHeaders });
   } catch (error) {
     return adminPlayerErrorResponse(error);
   }

@@ -24,6 +24,11 @@ export const eventStatusEnum = pgEnum("event_status", [
   "CANCELED",
 ]);
 
+export const eventEnvironmentEnum = pgEnum("event_environment", [
+  "TEST",
+  "PRODUCTION",
+]);
+
 export const playerStatusEnum = pgEnum("player_status", [
   "ACTIVE",
   "DISABLED",
@@ -86,6 +91,10 @@ export const auditActionEnum = pgEnum("audit_action", [
   "SCORE_ADJUSTED",
   "PLAYER_DISABLED",
   "REWARD_AWARDED",
+  "EVENT_UPDATED",
+  "EVENT_RESET_DRAFT",
+  "EVENT_FINISHED",
+  "PLAYER_DELETED",
 ]);
 
 export const adminUsers = pgTable(
@@ -121,6 +130,9 @@ export const events = pgTable(
     startsAt: utcTimestamp("starts_at").notNull(),
     endsAt: utcTimestamp("ends_at").notNull(),
     timezone: text("timezone").notNull(),
+    environment: eventEnvironmentEnum("environment")
+      .default("PRODUCTION")
+      .notNull(),
     status: eventStatusEnum("status").default("DRAFT").notNull(),
     createdAt: utcTimestamp("created_at").defaultNow().notNull(),
     updatedAt: utcTimestamp("updated_at").defaultNow().notNull(),

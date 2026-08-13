@@ -108,3 +108,13 @@ export function localDateTimeToUtcIso(
 
   return resolved.toISOString();
 }
+
+export function utcIsoToLocalDateTime(
+  value: string,
+  timeZone: string,
+): string {
+  const parts = partsInTimeZone(new Date(value), timeZone);
+  const pad = (part: number) => String(part).padStart(2, "0");
+
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`;
+}

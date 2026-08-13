@@ -22,6 +22,7 @@ describe("AdminPlayerManagementView", () => {
             id: "00000000-0000-4000-8000-000000000002",
             slug: "independance-congo-66",
             name: "Tombola — 66e anniversaire",
+            environment: "PRODUCTION",
             status: "READY",
           },
         ],
@@ -29,6 +30,7 @@ describe("AdminPlayerManagementView", () => {
           id: "00000000-0000-4000-8000-000000000002",
           slug: "independance-congo-66",
           name: "Tombola — 66e anniversaire",
+          environment: "PRODUCTION",
           status: "READY",
         },
         initialPlayers: [

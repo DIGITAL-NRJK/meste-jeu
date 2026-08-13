@@ -4,6 +4,7 @@ export type AdminEventOption = {
   id: string;
   slug: string;
   name: string;
+  environment: "TEST" | "PRODUCTION";
   status: "DRAFT" | "READY" | "LIVE" | "FINISHED" | "CANCELED";
 };
 

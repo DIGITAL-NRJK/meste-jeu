@@ -38,6 +38,10 @@ const auditActionLabels: Record<AdminAuditLogEntry["action"], string> = {
   SCORE_ADJUSTED: "Score ajusté",
   PLAYER_DISABLED: "Joueur désactivé",
   REWARD_AWARDED: "Récompense attribuée",
+  EVENT_UPDATED: "Événement modifié",
+  EVENT_RESET_DRAFT: "Événement repassé en brouillon",
+  EVENT_FINISHED: "Événement clôturé",
+  PLAYER_DELETED: "Joueur de test supprimé",
 };
 
 const exportLabels: Record<AdminExportKind, string> = {
@@ -277,7 +281,9 @@ export function AdminDashboardView({
                 onChange={(event) => selectEvent(event.target.value)}
               >
                 {dashboard.events.map((event) => (
-                  <option key={event.id} value={event.slug}>{event.name}</option>
+                  <option key={event.id} value={event.slug}>
+                    {event.environment === "TEST" ? "[TEST] " : ""}{event.name}
+                  </option>
                 ))}
               </select>
             </label>
@@ -304,6 +310,9 @@ export function AdminDashboardView({
               <div className="admin-live-line-event">
                 <span className={`admin-status admin-status--${dashboard.event.status.toLowerCase()}`}>
                   {statusLabel(dashboard.event.status)}
+                </span>
+                <span className={`admin-environment admin-environment--${dashboard.event.environment.toLowerCase()}`}>
+                  {dashboard.event.environment === "TEST" ? "Test" : "Production"}
                 </span>
                 <small>Événement</small>
                 <strong>{dashboard.event.name}</strong>

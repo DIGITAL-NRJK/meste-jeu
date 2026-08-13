@@ -34,6 +34,13 @@ const question = {
     name: "Histoire",
   },
 };
+const timeZoneOptions = [
+  { value: "Africa/Accra", label: "Africa/Accra — Accra, Ghana" },
+  {
+    value: "Africa/Brazzaville",
+    label: "Africa/Brazzaville — Brazzaville, Congo",
+  },
+];
 
 describe("AdminProgrammingView", () => {
   it("guide la création du premier événement depuis un état vide", () => {
@@ -43,13 +50,16 @@ describe("AdminProgrammingView", () => {
         initialEvents: [],
         initialEvent: null,
         initialSessions: [],
+        timeZoneOptions,
         validatedQuestions: [],
       }),
     );
 
     expect(html).toContain("Le conducteur");
     expect(html).toContain("Créer un événement");
+    expect(html).toContain("Africa/Accra — Accra, Ghana");
     expect(html).toContain("Africa/Brazzaville");
+    expect(html).toContain("<select required=\"\"");
   });
 
   it("présente uniquement la réserve validée et le conducteur ordonné", () => {
@@ -76,6 +86,7 @@ describe("AdminProgrammingView", () => {
             questions: [],
           },
         ],
+        timeZoneOptions,
         validatedQuestions: [question],
       }),
     );

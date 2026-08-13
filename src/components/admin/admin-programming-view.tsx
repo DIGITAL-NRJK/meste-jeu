@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-import { localDateTimeToUtcIso } from "@/lib/date/timezone";
+import {
+  localDateTimeToUtcIso,
+  type TimeZoneOption,
+} from "@/lib/date/timezone";
 import type { AdminIdentity } from "@/server/services/admin-auth";
 import type { AdminEventDetail } from "@/server/services/admin-programming";
 import type {
@@ -121,12 +124,14 @@ export function AdminProgrammingView({
   initialEvents,
   initialEvent,
   initialSessions,
+  timeZoneOptions,
   validatedQuestions,
 }: {
   admin: AdminIdentity;
   initialEvents: AdminEventView[];
   initialEvent: AdminEventView | null;
   initialSessions: AdminSessionView[];
+  timeZoneOptions: TimeZoneOption[];
   validatedQuestions: AdminProgrammingQuestionView[];
 }) {
   const router = useRouter();
@@ -437,7 +442,7 @@ export function AdminProgrammingView({
             <label className="programming-wide"><span>Description</span><textarea rows={2} maxLength={1000} value={eventForm.description} onChange={(change) => setEventForm({ ...eventForm, description: change.target.value })} /></label>
             <label><span>Début</span><input required type="datetime-local" value={eventForm.startsAt} onChange={(change) => setEventForm({ ...eventForm, startsAt: change.target.value })} /></label>
             <label><span>Fin</span><input required type="datetime-local" value={eventForm.endsAt} onChange={(change) => setEventForm({ ...eventForm, endsAt: change.target.value })} /></label>
-            <label><span>Fuseau horaire</span><input required value={eventForm.timezone} onChange={(change) => setEventForm({ ...eventForm, timezone: change.target.value })} /></label>
+            <label><span>Fuseau horaire</span><select required value={eventForm.timezone} onChange={(change) => setEventForm({ ...eventForm, timezone: change.target.value })}>{timeZoneOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
             <button type="submit" disabled={pending}>{pending ? "Création…" : "Créer l’événement"}</button>
           </form>
         ) : null}

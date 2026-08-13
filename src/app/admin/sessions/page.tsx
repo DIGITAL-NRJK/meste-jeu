@@ -9,6 +9,7 @@ import {
   type AdminSessionView,
 } from "@/components/admin/admin-programming-view";
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth/admin-session";
+import { getTimeZoneOptions } from "@/lib/date/timezone";
 import { getServerEnv } from "@/lib/env/server";
 import { postgresAdminAuthRepository } from "@/server/repositories/admin-auth-repository";
 import { postgresAdminProgrammingRepository } from "@/server/repositories/admin-programming-repository";
@@ -112,6 +113,7 @@ export default async function AdminSessionsPage({
       initialEvents={programming.events.map(serializeEvent)}
       initialEvent={programming.event ? serializeEvent(programming.event) : null}
       initialSessions={programming.sessions.map(serializeSession)}
+      timeZoneOptions={getTimeZoneOptions()}
       validatedQuestions={questions}
     />
   );

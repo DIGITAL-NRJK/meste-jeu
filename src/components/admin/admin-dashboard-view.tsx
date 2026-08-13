@@ -351,7 +351,7 @@ export function AdminDashboardView({
             ) : null}
 
             <nav className="admin-shortcuts" aria-label="Accès rapides">
-              <a href="#participants">Participants</a>
+              <a href={`/admin/players?event=${encodeURIComponent(selectedEvent)}`}>Joueurs</a>
               <a href="#question">Question actuelle</a>
               <a href="#classement">Classement</a>
               <a href="/admin/sessions">Programmation</a>
@@ -379,6 +379,12 @@ export function AdminDashboardView({
                     <span>actifs · 15 min</span>
                   </div>
                 </div>
+                <a
+                  className="admin-library-link"
+                  href={`/admin/players?event=${encodeURIComponent(selectedEvent)}`}
+                >
+                  Rechercher et gérer les joueurs →
+                </a>
               </section>
 
               <section className="admin-panel admin-question" id="question">

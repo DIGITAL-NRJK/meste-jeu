@@ -8,6 +8,7 @@ import {
 } from "@/components/admin/admin-player-management-view";
 import { ADMIN_SESSION_COOKIE_NAME } from "@/lib/auth/admin-session";
 import { getServerEnv } from "@/lib/env/server";
+import { readEventSlugParam } from "@/lib/validation/event-slug";
 import { postgresAdminAuthRepository } from "@/server/repositories/admin-auth-repository";
 import { postgresAdminPlayerManagementRepository } from "@/server/repositories/admin-player-management-repository";
 import { getAuthenticatedAdmin } from "@/server/services/admin-auth";
@@ -40,8 +41,7 @@ export default async function AdminPlayersPage({
 
   if (!admin) redirect("/admin/login");
 
-  const rawEvent = (await searchParams).event;
-  const eventSlug = Array.isArray(rawEvent) ? rawEvent[0] : rawEvent;
+  const eventSlug = readEventSlugParam((await searchParams).event);
   let management;
 
   try {
@@ -51,6 +51,10 @@ export default async function AdminPlayersPage({
     );
   } catch (error) {
     if (error instanceof AdminPlayerEventNotFoundError) redirect("/admin/players");
+    console.error(
+      `[REGIE] /admin/players a échoué (event=${eventSlug ?? "défaut"})`,
+      error,
+    );
     throw error;
   }
 

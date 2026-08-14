@@ -465,7 +465,7 @@
 .regie-live-card {
   display: grid;
   min-width: 0;
-  grid-template-columns: minmax(0, 2.1fr) minmax(15rem, 0.85fr);
+  grid-template-columns: minmax(0, 2.1fr) minmax(0, 0.85fr);
   overflow: hidden;
   border: 1px solid var(--regie-border);
   border-radius: 0.75rem;
@@ -513,7 +513,7 @@
   margin: 0;
   color: var(--regie-wine);
   font-family: var(--display-font);
-  font-size: clamp(2rem, 4.2vw, 3.75rem);
+  font-size: clamp(1.4rem, 2.3vw, 2.35rem);
   font-weight: 500;
   letter-spacing: -0.035em;
   line-height: 1.02;
@@ -747,7 +747,7 @@
 
 .regie-content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(18rem, 0.8fr);
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 0.8fr);
   margin-top: 1rem;
   gap: 1rem;
 }
@@ -2570,7 +2570,7 @@ input:focus-visible {
 .admin-control-actions .admin-control-danger { border: 1px solid rgb(238 131 121 / 50%); background: transparent; color: #ffaaa2; }
 
 @media (min-width: 48rem) {
-  .admin-control-deck { grid-template-columns: minmax(12rem, 0.7fr) minmax(20rem, 1.3fr); align-items: center; }
+  .admin-control-deck { grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); align-items: center; }
   .admin-control-actions { justify-content: flex-end; }
 }
 
@@ -2869,7 +2869,7 @@ input:focus-visible {
   }
 
   .admin-live-line {
-    grid-template-columns: minmax(12rem, 1fr) minmax(14rem, 1.35fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) auto;
     align-items: center;
     padding: 1.5rem 1.75rem;
   }
@@ -3684,7 +3684,7 @@ input:focus-visible {
   }
 
   .question-library-hero {
-    grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.7fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
     align-items: end;
     padding-top: 2rem;
   }
@@ -3713,7 +3713,7 @@ input:focus-visible {
 
 @media (min-width: 68rem) {
   .question-library-workspace {
-    grid-template-columns: minmax(20rem, 0.78fr) minmax(34rem, 1.4fr);
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.4fr);
     align-items: start;
   }
 
@@ -4033,7 +4033,7 @@ input:focus-visible {
 
 @media (min-width: 68rem) {
   .reward-management-grid {
-    grid-template-columns: minmax(23rem, 0.86fr) minmax(32rem, 1.14fr);
+    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
     align-items: start;
   }
 
@@ -4644,27 +4644,13 @@ input:focus-visible {
   }
 
   .programming-hero {
-    grid-template-columns: minmax(0, 1fr) minmax(26rem, 0.85fr);
+    grid-template-columns: minmax(0, 1fr) minmax(13rem, 0.85fr);
     align-items: end;
     padding-top: 2rem;
   }
 
-  .programming-steps {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .programming-steps li,
-  .programming-steps li:nth-child(2n) {
-    border-right: 1px solid var(--border);
-    border-bottom: 0;
-  }
-
-  .programming-steps li:last-child {
-    border-right: 0;
-  }
-
   .programming-event-bar {
-    grid-template-columns: minmax(16rem, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
   }
 
@@ -4723,7 +4709,7 @@ input:focus-visible {
   }
 
   .programming-workspace {
-    grid-template-columns: minmax(18rem, 0.58fr) minmax(42rem, 1.6fr);
+    grid-template-columns: minmax(0, 0.58fr) minmax(0, 1.6fr);
     align-items: start;
   }
 
@@ -4733,7 +4719,7 @@ input:focus-visible {
   }
 
   .programming-lineup-layout {
-    grid-template-columns: minmax(18rem, 0.72fr) minmax(26rem, 1.28fr);
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
   }
 
   .programming-question-bank {
@@ -4836,14 +4822,29 @@ input:focus-visible {
 }
 
 .player-management-filters {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   margin-top: 1.25rem;
+  align-items: end;
   gap: 0.7rem;
 }
 
 .player-management-filters label {
   display: grid;
+  min-width: 0;
   gap: 0.4rem;
+}
+
+.player-management-filters > label:first-of-type {
+  flex: 1 1 13rem;
+}
+
+.player-management-filters > label:nth-of-type(2) {
+  flex: 1 1 7.5rem;
+}
+
+.player-management-filters > button {
+  flex: 0 0 auto;
 }
 
 .player-management-filters label > span,
@@ -5289,11 +5290,6 @@ input:focus-visible {
 }
 
 @media (min-width: 48rem) {
-  .player-management-filters {
-    grid-template-columns: minmax(14rem, 1fr) minmax(9rem, 0.45fr) auto;
-    align-items: end;
-  }
-
   .player-disable-panel,
   .player-delete-panel {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -5301,7 +5297,7 @@ input:focus-visible {
   }
 
   .player-score-adjustment form {
-    grid-template-columns: minmax(12rem, 1fr) minmax(8rem, 0.4fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.4fr);
   }
 
   .player-score-adjustment-reason,
@@ -5317,7 +5313,7 @@ input:focus-visible {
 
 @media (min-width: 68rem) {
   .player-management-workspace {
-    grid-template-columns: minmax(20rem, 0.72fr) minmax(34rem, 1.28fr);
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
     align-items: start;
   }
 
@@ -5575,7 +5571,7 @@ input:focus-visible {
 
 @media (min-width: 68rem) {
   .admin-accounts-grid {
-    grid-template-columns: minmax(19rem, 0.68fr) minmax(32rem, 1.32fr);
+    grid-template-columns: minmax(0, 0.68fr) minmax(0, 1.32fr);
     align-items: start;
   }
 
@@ -6404,4 +6400,54 @@ input:focus-visible {
   margin: 1.25rem 0 0;
   font-size: 0.85rem;
   color: var(--text-secondary);
+}
+
+/* --- Filets de sécurité responsive --- */
+.player-management-filters > label,
+.question-library-filters > label,
+.programming-creation-form label,
+.reward-form label,
+.admin-accounts-form label,
+.player-score-adjustment form label {
+  min-width: 0;
+}
+
+.player-management-filters > button,
+.question-library-filters > button,
+.player-score-adjustment form > button {
+  white-space: nowrap;
+}
+
+.player-management-filters input,
+.player-management-filters select,
+.question-library-filters input,
+.question-library-filters select {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Le fil d'étapes ne passe sur une seule ligne que s'il y a vraiment la place. */
+@media (min-width: 90rem) {
+  .programming-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .programming-steps li,
+  .programming-steps li:nth-child(2n) {
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+
+  .programming-steps li:last-child {
+    border-right: 0;
+  }
+}
+
+.programming-steps li {
+  min-width: 0;
+}
+
+.programming-steps li,
+.programming-steps li > span {
+  overflow-wrap: anywhere;
 }

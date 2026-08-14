@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 
 import { events, quizSessions, sessionQuestions } from "../../../db/schema";
 import { getDb } from "@/lib/db/client";
+import { toDate, toNullableDate } from "@/lib/db/row-values";
 import type {
   PlayerGameEventState,
   PlayerGameRepository,
@@ -17,14 +18,14 @@ type EventStateRow = {
   sessionName: string | null;
   sessionMode: "DISCOVERY" | "LIVE" | null;
   sessionStatus: "DRAFT" | "READY" | "LIVE" | "FINISHED" | "CANCELED" | null;
-  sessionStartsAt: Date | null;
-  sessionEndsAt: Date | null;
+  sessionStartsAt: Date | string | null;
+  sessionEndsAt: Date | string | null;
   questionId: string | null;
   questionStatus: "OPEN" | "CLOSED" | "REVEALED" | "CANCELED" | null;
-  opensAt: Date | null;
-  closesAt: Date | null;
-  revealedAt: Date | null;
-  canceledAt: Date | null;
+  opensAt: Date | string | null;
+  closesAt: Date | string | null;
+  revealedAt: Date | string | null;
+  canceledAt: Date | string | null;
 };
 
 async function findEventState(
@@ -99,8 +100,8 @@ async function findEventState(
     name: row.sessionName,
     mode: row.sessionMode,
     status: row.sessionStatus,
-    startsAt: row.sessionStartsAt,
-    endsAt: row.sessionEndsAt,
+    startsAt: toNullableDate(row.sessionStartsAt),
+    endsAt: toNullableDate(row.sessionEndsAt),
     currentQuestion: null,
   };
 
@@ -113,10 +114,10 @@ async function findEventState(
     session.currentQuestion = {
       id: row.questionId,
       status: row.questionStatus,
-      opensAt: row.opensAt,
-      closesAt: row.closesAt,
-      revealedAt: row.revealedAt,
-      canceledAt: row.canceledAt,
+      opensAt: toDate(row.opensAt),
+      closesAt: toDate(row.closesAt),
+      revealedAt: toNullableDate(row.revealedAt),
+      canceledAt: toNullableDate(row.canceledAt),
     };
   }
 

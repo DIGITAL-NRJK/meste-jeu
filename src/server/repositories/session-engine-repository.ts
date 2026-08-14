@@ -13,6 +13,7 @@ import {
   sessionQuestions,
 } from "../../../db/schema";
 import { getDb } from "@/lib/db/client";
+import { toNullableDate } from "@/lib/db/row-values";
 import {
   type ConfigureLineupOutcome,
   type PersistQuizSession,
@@ -49,18 +50,18 @@ type PublicStateRow = {
   sessionSlug: string;
   sessionMode: "DISCOVERY" | "LIVE";
   sessionStatus: "DRAFT" | "READY" | "LIVE" | "FINISHED" | "CANCELED";
-  sessionStartsAt: Date | null;
-  sessionEndsAt: Date | null;
+  sessionStartsAt: Date | string | null;
+  sessionEndsAt: Date | string | null;
   sessionQuestionId: string | null;
   questionId: string | null;
   position: number | null;
   totalQuestions: number;
   durationSeconds: number | null;
   questionStatus: SessionQuestionStatus | null;
-  opensAt: Date | null;
-  closesAt: Date | null;
-  revealedAt: Date | null;
-  canceledAt: Date | null;
+  opensAt: Date | string | null;
+  closesAt: Date | string | null;
+  revealedAt: Date | string | null;
+  canceledAt: Date | string | null;
   acceptingAnswers: boolean;
   categoryName: string | null;
   categorySlug: string | null;
@@ -862,8 +863,8 @@ async function getPublicState(
     slug: row.sessionSlug,
     mode: row.sessionMode,
     status: row.sessionStatus,
-    startsAt: row.sessionStartsAt,
-    endsAt: row.sessionEndsAt,
+    startsAt: toNullableDate(row.sessionStartsAt),
+    endsAt: toNullableDate(row.sessionEndsAt),
   };
 
   if (
@@ -896,10 +897,10 @@ async function getPublicState(
     totalQuestions: row.totalQuestions,
     durationSeconds: row.durationSeconds,
     status: row.questionStatus,
-    opensAt: row.opensAt,
-    closesAt: row.closesAt,
-    revealedAt: row.revealedAt,
-    canceledAt: row.canceledAt,
+    opensAt: toNullableDate(row.opensAt),
+    closesAt: toNullableDate(row.closesAt),
+    revealedAt: toNullableDate(row.revealedAt),
+    canceledAt: toNullableDate(row.canceledAt),
     acceptingAnswers: row.acceptingAnswers,
     category: { name: row.categoryName, slug: row.categorySlug },
     questionText: row.questionText,

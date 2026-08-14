@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { toDate } from "@/lib/db/row-values";
+
 import {
   formatPoints,
   getDifficultyLabel,
@@ -51,5 +53,25 @@ describe("player interface helpers", () => {
 
   it("formate le score en français", () => {
     expect(formatPoints(1382).replace(/\s/u, " ")).toBe("1 382");
+  });
+});
+
+describe("robustesse du minuteur face au format des dates serveur", () => {
+  it("calcule le temps restant \u00e0 partir d\u2019une date ISO 8601", () => {
+    const closesAt = "2026-08-15T18:30:30.000Z";
+    const now = Date.parse("2026-08-15T18:30:00.000Z");
+
+    expect(getRemainingSeconds(closesAt, now)).toBe(30);
+  });
+
+  it("le serveur ne doit jamais envoyer le format texte PostgreSQL", () => {
+    const postgresText = "2026-08-15 18:30:30.123456+00";
+
+    expect(postgresText).not.toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/,
+    );
+    expect(toDate(postgresText).toISOString()).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    );
   });
 });

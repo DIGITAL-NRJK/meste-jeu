@@ -18,6 +18,7 @@ import {
   sessionQuestions,
 } from "../../../db/schema";
 import { getDb } from "@/lib/db/client";
+import { toDate } from "@/lib/db/row-values";
 import type {
   AdminPlayerAnswer,
   AdminPlayerDetail,
@@ -56,12 +57,34 @@ async function listEvents(): Promise<AdminPlayerEvent[]> {
   return [...result.rows];
 }
 
+type PlayerSummaryRow = Omit<AdminPlayerSummary, "createdAt" | "lastSeenAt"> & {
+  createdAt: Date | string;
+  lastSeenAt: Date | string;
+};
+
+type AdminPlayerAnswerRow = Omit<AdminPlayerAnswer, "receivedAt"> & {
+  receivedAt: Date | string;
+};
+
+type AdminPlayerScoreAdjustmentRow = Omit<
+  AdminPlayerScoreAdjustment,
+  "createdAt"
+> & { createdAt: Date | string };
+
+function toPlayerSummary(row: PlayerSummaryRow): AdminPlayerSummary {
+  return {
+    ...row,
+    createdAt: toDate(row.createdAt),
+    lastSeenAt: toDate(row.lastSeenAt),
+  };
+}
+
 async function listPlayers(
   filters: AdminPlayerFilters,
 ): Promise<AdminPlayerSummary[]> {
   const search = filters.search ?? null;
   const status = filters.status ?? null;
-  const result = await getDb().execute<AdminPlayerSummary>(sql`
+  const result = await getDb().execute<PlayerSummaryRow>(sql`
     SELECT
       player.id,
       player.public_code AS "publicCode",
@@ -96,13 +119,20 @@ async function listPlayers(
     LIMIT ${filters.limit}::integer
   `);
 
-  return [...result.rows];
+  return result.rows.map(toPlayerSummary);
 }
 
 type PlayerDetailRow = Omit<
   AdminPlayerDetail,
-  "event" | "answers" | "scoreSessions" | "scoreAdjustments"
+  | "event"
+  | "answers"
+  | "scoreSessions"
+  | "scoreAdjustments"
+  | "createdAt"
+  | "lastSeenAt"
 > & {
+  createdAt: Date | string;
+  lastSeenAt: Date | string;
   eventId: string;
   eventSlug: string;
   eventName: string;
@@ -147,7 +177,7 @@ async function getPlayer(playerId: string): Promise<AdminPlayerDetail | null> {
         WHERE player.id = ${playerId}::uuid
         LIMIT 1
       `),
-      db.execute<AdminPlayerAnswer>(sql`
+      db.execute<AdminPlayerAnswerRow>(sql`
         SELECT
           answer.id,
           session.name AS "sessionName",
@@ -201,7 +231,7 @@ async function getPlayer(playerId: string): Promise<AdminPlayerDetail | null> {
           session.starts_at DESC NULLS LAST,
           session.created_at DESC
       `),
-      db.execute<AdminPlayerScoreAdjustment>(sql`
+      db.execute<AdminPlayerScoreAdjustmentRow>(sql`
         SELECT
           adjustment.id,
           adjustment.quiz_session_id AS "quizSessionId",
@@ -232,8 +262,8 @@ async function getPlayer(playerId: string): Promise<AdminPlayerDetail | null> {
     currentStreak: player.currentStreak,
     totalPoints: player.totalPoints,
     answerCount: player.answerCount,
-    createdAt: player.createdAt,
-    lastSeenAt: player.lastSeenAt,
+    createdAt: toDate(player.createdAt),
+    lastSeenAt: toDate(player.lastSeenAt),
     event: {
       id: player.eventId,
       slug: player.eventSlug,
@@ -241,9 +271,15 @@ async function getPlayer(playerId: string): Promise<AdminPlayerDetail | null> {
       environment: player.eventEnvironment,
       status: player.eventStatus,
     },
-    answers: [...answerResult.rows],
+    answers: answerResult.rows.map((answer) => ({
+      ...answer,
+      receivedAt: toDate(answer.receivedAt),
+    })),
     scoreSessions: [...scoreSessionResult.rows],
-    scoreAdjustments: [...adjustmentResult.rows],
+    scoreAdjustments: adjustmentResult.rows.map((adjustment) => ({
+      ...adjustment,
+      createdAt: toDate(adjustment.createdAt),
+    })),
   };
 }
 

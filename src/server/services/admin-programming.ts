@@ -132,13 +132,17 @@ export class EventPersistenceError extends Error {
   }
 }
 
+export const EVENT_SLUG_MAX_LENGTH = 120;
+
 export function normalizeEventSlug(name: string): string {
   return name
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-+|-+$/g, "")
+    .slice(0, EVENT_SLUG_MAX_LENGTH)
+    .replace(/-+$/g, "");
 }
 
 function parseInput<T>(result: z.ZodSafeParseResult<T>): T {

@@ -39,3 +39,21 @@ describe("readEventSlugParam", () => {
     expect(readEventSlugParam("a".repeat(120))).toBe("a".repeat(120));
   });
 });
+
+describe("normalizeEventSlug", () => {
+  it("produit un slug accept\u00e9 par les \u00e9crans de r\u00e9gie", async () => {
+    const { normalizeEventSlug } = await import(
+      "@/server/services/admin-programming"
+    );
+    const longName =
+      "\u00c9v\u00e9nement de test pour v\u00e9rifier le parcours joueur avant la f\u00eate de l\u2019ind\u00e9pendance de la R\u00e9publique du Congo au Ghana";
+    const slug = normalizeEventSlug(longName);
+
+    expect(slug.length).toBeLessThanOrEqual(120);
+    expect(readEventSlugParam(slug)).toBe(slug);
+  });
+
+  it("ne laisse jamais de tiret en fin de slug apr\u00e8s troncature", () => {
+    expect(readEventSlugParam("a".repeat(119) + "-b")).toBeUndefined();
+  });
+});

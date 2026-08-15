@@ -48,6 +48,7 @@ function repository(): SessionEngineRepository {
     getPublicState: vi.fn(),
     getSession: vi.fn(async () => detail()),
     markReady: vi.fn(async () => "transitioned" as const),
+    resetToDraft: vi.fn(async () => "transitioned" as const),
     startSession: vi.fn(async () => "transitioned" as const),
     openNextQuestion: vi.fn(async () => "transitioned" as const),
     closeCurrentQuestion: vi.fn(async () => "transitioned" as const),

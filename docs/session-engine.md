@@ -14,6 +14,16 @@ Le passage en `READY` et le démarrage revalident qu’au moins une question est
 
 L’interface `/admin/sessions` conserve le conducteur en `DRAFT` tant que l’ordre et les durées restent modifiables. Elle ne propose que les questions `VALIDATED`. Une fois la session rendue `READY`, le conducteur devient non modifiable et l’événement peut passer de `DRAFT` à `READY` pour ouvrir les inscriptions joueur.
 
+## Réouverture du conducteur
+
+Une session `READY` qui n’a jamais été lancée peut revenir en `DRAFT` depuis la régie, afin de corriger son conducteur après une répétition. La commande `RESET_SESSION_DRAFT` est refusée dès qu’une trace de jeu existe :
+
+- au moins une occurrence possède un `opens_at` ;
+- au moins une réponse est enregistrée sur une de ses occurrences ;
+- au moins un événement de score référence la session.
+
+Ces trois conditions sont évaluées par PostgreSQL dans la même requête que la transition, et non en amont par le service : une session déjà jouée reste donc verrouillée même si son statut a été ramené à `READY` par la réinitialisation d’un événement. La transition écrit un audit `SESSION_RESET_DRAFT`. Les réponses, les scores et le journal ne sont jamais supprimés.
+
 ## Cycle d’une occurrence
 
 ```text

@@ -5,6 +5,7 @@ import {
   finishQuizSession,
   markSessionReady,
   openNextSessionQuestion,
+  resetQuizSessionToDraft,
   revealCurrentSessionQuestion,
   startQuizSession,
   type QuizSessionDetail,
@@ -32,6 +33,8 @@ export async function executeAdminLiveControl(
   switch (parsed.data.action) {
     case "MARK_READY":
       return markSessionReady(parsed.data.sessionId, actorAdminId, dependencies);
+    case "RESET_SESSION_DRAFT":
+      return resetQuizSessionToDraft(parsed.data.sessionId, actorAdminId, dependencies);
     case "START_SESSION":
       return startQuizSession(parsed.data.sessionId, actorAdminId, dependencies);
     case "OPEN_NEXT_QUESTION":

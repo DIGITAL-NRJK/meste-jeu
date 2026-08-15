@@ -83,6 +83,7 @@ export const auditActionEnum = pgEnum("audit_action", [
   "QUESTION_VALIDATED",
   "SESSION_CREATED",
   "SESSION_STARTED",
+  "SESSION_RESET_DRAFT",
   "SESSION_FINISHED",
   "QUESTION_STARTED",
   "QUESTION_CLOSED",

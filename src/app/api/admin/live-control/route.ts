@@ -74,6 +74,18 @@ export async function POST(request: NextRequest) {
         { status: 404, headers },
       );
     }
+    if (error instanceof SessionTransitionError && error.reason === "already_played") {
+      return NextResponse.json(
+        {
+          error: {
+            code: "SESSION_ALREADY_PLAYED",
+            message:
+              "Cette session a déjà été jouée : son conducteur reste verrouillé pour préserver les réponses et les scores.",
+          },
+        },
+        { status: 409, headers },
+      );
+    }
     if (error instanceof SessionInvalidStatusError || error instanceof SessionTransitionError) {
       return NextResponse.json(
         {

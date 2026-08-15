@@ -101,4 +101,84 @@ describe("AdminProgrammingView", () => {
     expect(html).toContain("Ouvrir l’espace joueur");
     expect(html).toContain('href="/play/heritage-congo-2026"');
   });
+
+  it("propose de rouvrir le conducteur d’une session prête, jamais lancée", () => {
+    const readyEvent = { ...event, status: "READY" as const };
+    const html = renderToStaticMarkup(
+      createElement(AdminProgrammingView, {
+        admin,
+        initialEvents: [readyEvent],
+        initialEvent: readyEvent,
+        initialSessions: [
+          {
+            id: "00000000-0000-4000-8000-000000000006",
+            eventId: event.id,
+            eventSlug: event.slug,
+            eventName: event.name,
+            name: "Séquence 1",
+            slug: "sequence-1",
+            mode: "LIVE",
+            status: "READY",
+            startsAt: null,
+            endsAt: null,
+            resetScore: false,
+            createdAt: event.createdAt,
+            updatedAt: event.updatedAt,
+            questions: [
+              {
+                id: "00000000-0000-4000-8000-000000000007",
+                questionId: question.id,
+                questionText: question.questionText,
+                position: 1,
+                durationSeconds: 30,
+                status: "PENDING",
+                opensAt: null,
+                closesAt: null,
+                revealedAt: null,
+                canceledAt: null,
+              },
+            ],
+          },
+        ],
+        timeZoneOptions,
+        validatedQuestions: [question],
+      }),
+    );
+
+    expect(html).toContain("Rouvrir le conducteur");
+    expect(html).toContain("tant que la session n’a pas été lancée");
+  });
+
+  it("ne propose pas de rouvrir une session en direct", () => {
+    const liveEvent = { ...event, status: "LIVE" as const };
+    const html = renderToStaticMarkup(
+      createElement(AdminProgrammingView, {
+        admin,
+        initialEvents: [liveEvent],
+        initialEvent: liveEvent,
+        initialSessions: [
+          {
+            id: "00000000-0000-4000-8000-000000000008",
+            eventId: event.id,
+            eventSlug: event.slug,
+            eventName: event.name,
+            name: "Séquence en direct",
+            slug: "sequence-live",
+            mode: "LIVE",
+            status: "LIVE",
+            startsAt: null,
+            endsAt: null,
+            resetScore: false,
+            createdAt: event.createdAt,
+            updatedAt: event.updatedAt,
+            questions: [],
+          },
+        ],
+        timeZoneOptions,
+        validatedQuestions: [question],
+      }),
+    );
+
+    expect(html).not.toContain("Rouvrir le conducteur");
+  });
 });

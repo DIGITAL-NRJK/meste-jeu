@@ -4,6 +4,7 @@ export const adminLiveControlSchema = z
   .object({
     action: z.enum([
       "MARK_READY",
+      "RESET_SESSION_DRAFT",
       "START_SESSION",
       "OPEN_NEXT_QUESTION",
       "CLOSE_CURRENT_QUESTION",

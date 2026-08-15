@@ -16,13 +16,18 @@ L’interface `/admin/sessions` conserve le conducteur en `DRAFT` tant que l’o
 
 ## Réouverture du conducteur
 
-Une session `READY` qui n’a jamais été lancée peut revenir en `DRAFT` depuis la régie, afin de corriger son conducteur après une répétition. La commande `RESET_SESSION_DRAFT` est refusée dès qu’une trace de jeu existe :
+Une session `READY` peut revenir en `DRAFT` depuis la régie afin de corriger son conducteur. La commande `RESET_SESSION_DRAFT` exige dans tous les cas qu’il ne reste **aucune réponse** et **aucun événement de score** rattachés à la session. S’y ajoute une condition qui dépend du contexte de l’événement :
 
-- au moins une occurrence possède un `opens_at` ;
-- au moins une réponse est enregistrée sur une de ses occurrences ;
-- au moins un événement de score référence la session.
+| Contexte de l’événement | Condition supplémentaire |
+|---|---|
+| `PRODUCTION` | aucune occurrence ne doit posséder d’`opens_at` : une session lancée reste verrouillée |
+| `TEST` | aucune : une répétition peut être rejouée une fois ses joueurs purgés |
 
-Ces trois conditions sont évaluées par PostgreSQL dans la même requête que la transition, et non en amont par le service : une session déjà jouée reste donc verrouillée même si son statut a été ramené à `READY` par la réinitialisation d’un événement. La transition écrit un audit `SESSION_RESET_DRAFT`. Les réponses, les scores et le journal ne sont jamais supprimés.
+Cette asymétrie suit celle de la suppression des joueurs, autorisée en contexte test et interdite en production : les données d’un événement de test sont jetables par construction. Comme la réouverture exige de toute façon l’absence de réponses, la reconstruction du conducteur ne peut jamais buter sur une clé étrangère.
+
+Toutes ces conditions sont évaluées par PostgreSQL dans la même requête que la transition, et non en amont par le service : une session de production déjà jouée reste donc verrouillée même si son statut a été ramené à `READY` par la réinitialisation d’un événement.
+
+La réouverture remet aussi les occurrences à l’état neuf — `PENDING`, sans `opens_at`, `closes_at`, `revealed_at` ni `canceled_at` — pour que la séquence soit rejouable sans reliquat. La transition écrit un audit `SESSION_RESET_DRAFT` portant le contexte et le nombre d’occurrences réinitialisées. Le journal d’audit, lui, n’est jamais supprimé.
 
 ## Cycle d’une occurrence
 

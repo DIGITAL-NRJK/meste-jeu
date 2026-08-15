@@ -404,6 +404,45 @@ export function AdminProgrammingView({
     }
   }
 
+  async function resetSessionToDraft() {
+    if (!selectedSession) return;
+    if (
+      !window.confirm(
+        `Rouvrir le conducteur de « ${selectedSession.name} » ?\n\nLa session repasse en brouillon et vous pourrez modifier ses questions. Elle ne sera plus visible par les joueurs tant que vous ne l'aurez pas rendue prête à nouveau.`,
+      )
+    ) {
+      return;
+    }
+
+    setPending(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/admin/live-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "RESET_SESSION_DRAFT",
+          sessionId: selectedSession.id,
+        }),
+      });
+      if (handleUnauthorized(response)) return;
+      if (!response.ok) throw await responseError(response);
+
+      const payload = (await response.json()) as { session: AdminSessionView };
+      setSessions((current) =>
+        current.map((candidate) =>
+          candidate.id === payload.session.id ? payload.session : candidate,
+        ),
+      );
+      setMessage("Conducteur rouvert. La session est repassée en brouillon.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Réouverture impossible.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   async function runEventAction(
     action: "MARK_READY" | "RESET_DRAFT" | "FINISH",
   ) {
@@ -656,8 +695,22 @@ export function AdminProgrammingView({
                       </div>
                     ) : (
                       <div className="programming-locked-lineup">
-                        <p>Le conducteur est verrouillé pour garantir l’ordre du direct.</p>
+                        <p>
+                          {selectedSession.status === "READY"
+                            ? "Le conducteur est verrouillé. Rouvrez-le pour modifier ses questions tant que la session n’a pas été lancée."
+                            : "Le conducteur est verrouillé pour garantir l’ordre du direct."}
+                        </p>
                         <ol>{selectedSession.questions.map((question) => <li key={question.id}><span>{String(question.position).padStart(2, "0")}</span><strong>{question.questionText}</strong><small>{question.durationSeconds} s</small></li>)}</ol>
+                        {selectedSession.status === "READY" ? (
+                          <button
+                            type="button"
+                            className="programming-secondary-action"
+                            disabled={pending}
+                            onClick={resetSessionToDraft}
+                          >
+                            Rouvrir le conducteur
+                          </button>
+                        ) : null}
                         <Link href={`/admin?event=${encodeURIComponent(event.slug)}`}>Revenir à la conduite live →</Link>
                       </div>
                     )}

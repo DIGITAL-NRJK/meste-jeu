@@ -35,6 +35,7 @@ import {
   getPublicSessionState,
   markSessionReady,
   openNextSessionQuestion,
+  resetQuizSessionToDraft,
   revealCurrentSessionQuestion,
   SessionLineupError,
   SessionTransitionError,
@@ -141,11 +142,16 @@ describe("session engine with PostgreSQL", () => {
   afterAll(async () => {
     await db.delete(auditLogs).where(eq(auditLogs.adminUserId, actorAdminId));
 
-    if (quizSessionId) {
-      await db
-        .delete(sessionQuestions)
-        .where(eq(sessionQuestions.quizSessionId, quizSessionId));
-      await db.delete(quizSessions).where(eq(quizSessions.id, quizSessionId));
+    // Nettoie toutes les sessions de l'événement, y compris celles créées à la volée.
+    const createdSessions = await db
+      .select({ id: quizSessions.id })
+      .from(quizSessions)
+      .where(eq(quizSessions.eventId, eventId));
+
+    if (createdSessions.length > 0) {
+      const ids = createdSessions.map(({ id }) => id);
+      await db.delete(sessionQuestions).where(inArray(sessionQuestions.quizSessionId, ids));
+      await db.delete(quizSessions).where(inArray(quizSessions.id, ids));
     }
 
     if (questionIds.length > 0) {
@@ -363,5 +369,80 @@ describe("session engine with PostgreSQL", () => {
         "SESSION_FINISHED",
       ]),
     );
+  });
+
+  it("rouvre une session prête jamais lancée, puis refuse après le premier lancement", async () => {
+    const premiere = await createValidatedQuestion(3);
+    const seconde = await createValidatedQuestion(4);
+
+    const session = await createQuizSession(
+      {
+        eventId,
+        name: `Séquence réouvrable ${randomUUID()}`,
+        mode: "LIVE",
+        resetScore: false,
+      },
+      actorAdminId,
+      sessionDependencies,
+    );
+
+    await configureSessionLineup(
+      session.id,
+      [
+        { questionId: premiere.id, durationSeconds: 30 },
+        { questionId: seconde.id, durationSeconds: 30 },
+      ],
+      actorAdminId,
+      sessionDependencies,
+    );
+    await markSessionReady(session.id, actorAdminId, sessionDependencies);
+
+    // 1. Jamais lancée : la réouverture est autorisée et le conducteur redevient modifiable.
+    const reopened = await resetQuizSessionToDraft(
+      session.id,
+      actorAdminId,
+      sessionDependencies,
+    );
+    expect(reopened.status).toBe("DRAFT");
+
+    const trimmed = await configureSessionLineup(
+      session.id,
+      [{ questionId: premiere.id, durationSeconds: 20 }],
+      actorAdminId,
+      sessionDependencies,
+    );
+    expect(trimmed.questions).toHaveLength(1);
+
+    // 2. L'action est journalisée.
+    const journal = await db
+      .select({ action: auditLogs.action, entityId: auditLogs.entityId })
+      .from(auditLogs)
+      .where(eq(auditLogs.entityId, session.id));
+    expect(journal.map(({ action }) => action)).toContain("SESSION_RESET_DRAFT");
+
+    // 3. Une fois la session lancée et une question ouverte, le verrou est définitif.
+    await markSessionReady(session.id, actorAdminId, sessionDependencies);
+    await startQuizSession(session.id, actorAdminId, sessionDependencies);
+    await openNextSessionQuestion(session.id, actorAdminId, sessionDependencies);
+    await closeCurrentSessionQuestion(session.id, actorAdminId, sessionDependencies);
+    await revealCurrentSessionQuestion(session.id, actorAdminId, sessionDependencies);
+    await finishQuizSession(session.id, actorAdminId, sessionDependencies);
+
+    await expect(
+      resetQuizSessionToDraft(session.id, actorAdminId, sessionDependencies),
+    ).rejects.toMatchObject({ name: "SessionInvalidStatusError" });
+
+    // 4. Et même remise en « prête » par une réinitialisation d'événement, elle reste verrouillée.
+    await db
+      .update(quizSessions)
+      .set({ status: "READY" })
+      .where(eq(quizSessions.id, session.id));
+
+    await expect(
+      resetQuizSessionToDraft(session.id, actorAdminId, sessionDependencies),
+    ).rejects.toMatchObject({
+      name: "SessionTransitionError",
+      reason: "already_played",
+    });
   });
 });

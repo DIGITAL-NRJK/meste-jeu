@@ -127,6 +127,7 @@ export type SessionTransitionOutcome =
   | "transitioned"
   | "not_found"
   | "invalid_status"
+  | "already_played"
   | "no_questions"
   | "unvalidated_questions"
   | "question_still_open"
@@ -148,6 +149,11 @@ export interface SessionEngineRepository {
   ): Promise<ConfigureLineupOutcome>;
   markReady(
     sessionId: string,
+    now: Date,
+  ): Promise<SessionTransitionOutcome>;
+  resetToDraft(
+    sessionId: string,
+    actorAdminId: string,
     now: Date,
   ): Promise<SessionTransitionOutcome>;
   startSession(
@@ -422,6 +428,29 @@ export async function markSessionReady(
   const id = parseId(sessionId);
   const outcome = await dependencies.repository.markReady(
     id,
+    dependencies.now?.() ?? new Date(),
+  );
+  handleTransitionOutcome(outcome);
+
+  return requireSession(id, dependencies.repository);
+}
+
+/**
+ * Ramène une session « prête » en brouillon pour rouvrir son conducteur.
+ *
+ * Refusé dès qu'une question a été ouverte, qu'une réponse a été enregistrée ou
+ * qu'un événement de score existe : une session déjà jouée reste verrouillée.
+ */
+export async function resetQuizSessionToDraft(
+  sessionId: string,
+  actorAdminId: string,
+  dependencies: SessionEngineDependencies,
+): Promise<QuizSessionDetail> {
+  assertActorId(actorAdminId);
+  const id = parseId(sessionId);
+  const outcome = await dependencies.repository.resetToDraft(
+    id,
+    actorAdminId,
     dependencies.now?.() ?? new Date(),
   );
   handleTransitionOutcome(outcome);

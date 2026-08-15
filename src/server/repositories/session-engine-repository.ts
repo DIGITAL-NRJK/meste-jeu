@@ -3,6 +3,7 @@ import "server-only";
 import { and, asc, eq, sql } from "drizzle-orm";
 
 import {
+  answers,
   auditLogs,
   categories,
   events,
@@ -31,6 +32,7 @@ type TransitionRow = {
     | "TRANSITIONED"
     | "NOT_FOUND"
     | "INVALID_STATUS"
+    | "ALREADY_PLAYED"
     | "NO_QUESTIONS"
     | "UNVALIDATED_QUESTIONS"
     | "QUESTION_STILL_OPEN"
@@ -153,6 +155,8 @@ function mapTransitionOutcome(
       return "transitioned";
     case "INVALID_STATUS":
       return "invalid_status";
+    case "ALREADY_PLAYED":
+      return "already_played";
     case "NO_QUESTIONS":
       return "no_questions";
     case "UNVALIDATED_QUESTIONS":
@@ -391,6 +395,71 @@ async function markReady(
       WHEN (SELECT status FROM state) <> 'DRAFT' THEN 'INVALID_STATUS'
       WHEN (SELECT question_count FROM state) = 0 THEN 'NO_QUESTIONS'
       ELSE 'UNVALIDATED_QUESTIONS'
+    END AS outcome
+  `);
+
+  return mapTransitionOutcome(result.rows[0]);
+}
+
+async function resetToDraft(
+  sessionId: string,
+  actorAdminId: string,
+  now: Date,
+): Promise<SessionTransitionOutcome> {
+  const result = await getDb().execute<TransitionRow>(sql`
+    WITH state AS (
+      SELECT
+        session.id,
+        session.status::text AS status,
+        count(occurrence.id) FILTER (
+          WHERE occurrence.opens_at IS NOT NULL
+        )::integer AS played_question_count,
+        (
+          SELECT count(*)
+          FROM ${answers} AS answer
+          INNER JOIN ${sessionQuestions} AS answered
+            ON answered.id = answer.session_question_id
+          WHERE answered.quiz_session_id = session.id
+        )::integer AS answer_count,
+        (
+          SELECT count(*)
+          FROM ${scoreEvents} AS score
+          WHERE score.quiz_session_id = session.id
+        )::integer AS score_event_count
+      FROM ${quizSessions} AS session
+      LEFT JOIN ${sessionQuestions} AS occurrence
+        ON occurrence.quiz_session_id = session.id
+      WHERE session.id = ${sessionId}::uuid
+      GROUP BY session.id, session.status
+    ), updated AS (
+      UPDATE ${quizSessions} AS session
+      SET status = 'DRAFT', updated_at = ${now}
+      FROM state
+      WHERE session.id = state.id
+        AND state.status = 'READY'
+        AND state.played_question_count = 0
+        AND state.answer_count = 0
+        AND state.score_event_count = 0
+      RETURNING session.id
+    ), written_audit AS (
+      INSERT INTO ${auditLogs} (
+        admin_user_id, action, entity_type, entity_id, metadata, created_at
+      )
+      SELECT
+        ${actorAdminId}::uuid,
+        'SESSION_RESET_DRAFT',
+        'quiz_session',
+        updated.id,
+        jsonb_build_object('from', 'READY', 'to', 'DRAFT'),
+        ${now}
+      FROM updated
+      RETURNING id
+    )
+    SELECT CASE
+      WHEN NOT EXISTS (SELECT 1 FROM state) THEN 'NOT_FOUND'
+      WHEN EXISTS (SELECT 1 FROM updated) THEN 'TRANSITIONED'
+      WHEN (SELECT status FROM state) <> 'READY' THEN 'INVALID_STATUS'
+      ELSE 'ALREADY_PLAYED'
     END AS outcome
   `);
 
@@ -942,6 +1011,7 @@ export const postgresSessionEngineRepository: SessionEngineRepository = {
   getSession,
   configureLineup,
   markReady,
+  resetToDraft,
   startSession,
   openNextQuestion,
   closeCurrentQuestion,

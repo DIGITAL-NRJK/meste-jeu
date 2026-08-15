@@ -8,6 +8,7 @@ import {
   markSessionReady,
   normalizeSessionSlug,
   openNextSessionQuestion,
+  resetQuizSessionToDraft,
   type PersistQuizSession,
   type PersistSessionLineupItem,
   type PublicSessionState,
@@ -58,6 +59,7 @@ function createRepository(
     getSession: vi.fn(async () => sessionDetail()),
     configureLineup: vi.fn(async () => "configured" as const),
     markReady: vi.fn(async () => "transitioned" as const),
+    resetToDraft: vi.fn(async () => "transitioned" as const),
     startSession: vi.fn(async () => "transitioned" as const),
     openNextQuestion: vi.fn(async () => "transitioned" as const),
     closeCurrentQuestion: vi.fn(async () => "transitioned" as const),
@@ -272,5 +274,50 @@ describe("session engine service", () => {
     expect(JSON.stringify(state)).not.toContain("isCorrect");
     expect(JSON.stringify(state)).not.toContain("correctOptionId");
     expect(JSON.stringify(state)).not.toContain("explanation");
+  });
+});
+
+describe("réouverture du conducteur d’une session prête", () => {
+  it("repasse en brouillon une session jamais lancée", async () => {
+    const resetToDraft = vi.fn(async () => "transitioned" as const);
+    const repository = createRepository({
+      resetToDraft,
+      getSession: vi.fn(async () => sessionDetail({ status: "DRAFT" })),
+    });
+
+    const session = await resetQuizSessionToDraft(sessionId, actorAdminId, { repository });
+
+    expect(resetToDraft).toHaveBeenCalledWith(sessionId, actorAdminId, expect.any(Date));
+    expect(session.status).toBe("DRAFT");
+  });
+
+  it("refuse de rouvrir une session déjà jouée", async () => {
+    const repository = createRepository({
+      resetToDraft: vi.fn(async () => "already_played" as const),
+    });
+
+    await expect(
+      resetQuizSessionToDraft(sessionId, actorAdminId, { repository }),
+    ).rejects.toMatchObject({ name: "SessionTransitionError", reason: "already_played" });
+  });
+
+  it("refuse de rouvrir une session qui n’est pas prête", async () => {
+    const repository = createRepository({
+      resetToDraft: vi.fn(async () => "invalid_status" as const),
+    });
+
+    await expect(
+      resetQuizSessionToDraft(sessionId, actorAdminId, { repository }),
+    ).rejects.toMatchObject({ name: "SessionInvalidStatusError" });
+  });
+
+  it("refuse une session introuvable", async () => {
+    const repository = createRepository({
+      resetToDraft: vi.fn(async () => "not_found" as const),
+    });
+
+    await expect(
+      resetQuizSessionToDraft(sessionId, actorAdminId, { repository }),
+    ).rejects.toMatchObject({ name: "SessionNotFoundError" });
   });
 });

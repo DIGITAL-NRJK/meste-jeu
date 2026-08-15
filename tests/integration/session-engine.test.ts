@@ -7,9 +7,12 @@ vi.mock("server-only", () => ({}));
 
 import {
   adminUsers,
+  answers,
   auditLogs,
   categories,
   events,
+  players,
+  scoreEvents,
   questionOptions,
   questions,
   questionSources,
@@ -57,7 +60,6 @@ const eventId = randomUUID();
 const eventSlug = `integration-session-${randomUUID()}`;
 const serverNow = new Date("2026-08-15T18:30:00.000Z");
 let categoryId: string | undefined;
-let quizSessionId: string | undefined;
 const questionIds: string[] = [];
 
 const questionDependencies = {
@@ -190,7 +192,6 @@ describe("session engine with PostgreSQL", () => {
       actorAdminId,
       sessionDependencies,
     );
-    quizSessionId = session.id;
 
     await expect(
       markSessionReady(session.id, actorAdminId, sessionDependencies),
@@ -444,5 +445,104 @@ describe("session engine with PostgreSQL", () => {
       name: "SessionTransitionError",
       reason: "already_played",
     });
+  });
+
+  it("rouvre une session répétée en contexte test, une fois les joueurs de test purgés", async () => {
+    const question = await createValidatedQuestion(2);
+    const testEventId = randomUUID();
+
+    await db.insert(events).values({
+      id: testEventId,
+      slug: `integration-test-context-${randomUUID()}`,
+      name: "Événement de répétition en contexte test",
+      startsAt: new Date("2026-08-15T16:00:00.000Z"),
+      endsAt: new Date("2026-08-15T23:00:00.000Z"),
+      timezone: "Africa/Accra",
+      status: "READY",
+      environment: "TEST",
+    });
+
+    const session = await createQuizSession(
+      { eventId: testEventId, name: `Répétition ${randomUUID()}`, mode: "LIVE", resetScore: false },
+      actorAdminId,
+      sessionDependencies,
+    );
+    await configureSessionLineup(
+      session.id,
+      [{ questionId: question.id, durationSeconds: 30 }],
+      actorAdminId,
+      sessionDependencies,
+    );
+    await markSessionReady(session.id, actorAdminId, sessionDependencies);
+
+    // Répétition complète : la question est jouée puis révélée.
+    await startQuizSession(session.id, actorAdminId, sessionDependencies);
+    await openNextSessionQuestion(session.id, actorAdminId, sessionDependencies);
+    await closeCurrentSessionQuestion(session.id, actorAdminId, sessionDependencies);
+    const played = await revealCurrentSessionQuestion(session.id, actorAdminId, sessionDependencies);
+    const occurrence = played.questions[0];
+    expect(occurrence.opensAt).not.toBeNull();
+
+    const playerId = randomUUID();
+    await db.insert(players).values({
+      id: playerId,
+      eventId: testEventId,
+      publicCode: `HC-${randomUUID().slice(0, 4)}`,
+      nickname: `Testeur ${randomUUID().slice(0, 8)}`,
+    });
+    await db.insert(answers).values({
+      playerId,
+      sessionQuestionId: occurrence.id,
+      questionOptionId: (await db
+        .select({ id: questionOptions.id })
+        .from(questionOptions)
+        .where(eq(questionOptions.questionId, question.id))
+        .limit(1))[0].id,
+      receivedAt: serverNow,
+      responseTimeMs: 4200,
+      isCorrect: true,
+    });
+    await db.insert(scoreEvents).values({
+      playerId,
+      quizSessionId: session.id,
+      sessionQuestionId: occurrence.id,
+      type: "ANSWER_CORRECT",
+      points: 100,
+    });
+
+    // Le contexte test ne suffit pas : tant qu'une réponse subsiste, le conducteur reste verrouillé.
+    await db.update(quizSessions).set({ status: "READY" }).where(eq(quizSessions.id, session.id));
+    await expect(
+      resetQuizSessionToDraft(session.id, actorAdminId, sessionDependencies),
+    ).rejects.toMatchObject({ name: "SessionTransitionError", reason: "already_played" });
+
+    // Purge des joueurs de test, exactement comme depuis la régie.
+    await db.delete(scoreEvents).where(eq(scoreEvents.playerId, playerId));
+    await db.delete(answers).where(eq(answers.playerId, playerId));
+    await db.delete(players).where(eq(players.id, playerId));
+
+    // Cette fois la réouverture est autorisée et l'occurrence redevient vierge.
+    const reopened = await resetQuizSessionToDraft(session.id, actorAdminId, sessionDependencies);
+    expect(reopened.status).toBe("DRAFT");
+    expect(reopened.questions[0].status).toBe("PENDING");
+    expect(reopened.questions[0].opensAt).toBeNull();
+    expect(reopened.questions[0].closesAt).toBeNull();
+    expect(reopened.questions[0].revealedAt).toBeNull();
+
+    // En contexte production, la même situation reste refusée.
+    await db.update(quizSessions).set({ status: "READY" }).where(eq(quizSessions.id, session.id));
+    await db
+      .update(sessionQuestions)
+      .set({ opensAt: serverNow, status: "REVEALED" })
+      .where(eq(sessionQuestions.quizSessionId, session.id));
+    await db.update(events).set({ environment: "PRODUCTION" }).where(eq(events.id, testEventId));
+
+    await expect(
+      resetQuizSessionToDraft(session.id, actorAdminId, sessionDependencies),
+    ).rejects.toMatchObject({ name: "SessionTransitionError", reason: "already_played" });
+
+    await db.delete(sessionQuestions).where(eq(sessionQuestions.quizSessionId, session.id));
+    await db.delete(quizSessions).where(eq(quizSessions.id, session.id));
+    await db.delete(events).where(eq(events.id, testEventId));
   });
 });

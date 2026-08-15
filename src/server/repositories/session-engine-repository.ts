@@ -411,6 +411,7 @@ async function resetToDraft(
       SELECT
         session.id,
         session.status::text AS status,
+        event.environment::text AS environment,
         count(occurrence.id) FILTER (
           WHERE occurrence.opens_at IS NOT NULL
         )::integer AS played_question_count,
@@ -427,20 +428,35 @@ async function resetToDraft(
           WHERE score.quiz_session_id = session.id
         )::integer AS score_event_count
       FROM ${quizSessions} AS session
+      INNER JOIN ${events} AS event ON event.id = session.event_id
       LEFT JOIN ${sessionQuestions} AS occurrence
         ON occurrence.quiz_session_id = session.id
       WHERE session.id = ${sessionId}::uuid
-      GROUP BY session.id, session.status
+      GROUP BY session.id, session.status, event.environment
     ), updated AS (
       UPDATE ${quizSessions} AS session
       SET status = 'DRAFT', updated_at = ${now}
       FROM state
       WHERE session.id = state.id
         AND state.status = 'READY'
-        AND state.played_question_count = 0
         AND state.answer_count = 0
         AND state.score_event_count = 0
+        AND (
+          state.environment = 'TEST'
+          OR state.played_question_count = 0
+        )
       RETURNING session.id
+    ), reset_questions AS (
+      UPDATE ${sessionQuestions} AS occurrence
+      SET
+        status = 'PENDING',
+        opens_at = NULL,
+        closes_at = NULL,
+        revealed_at = NULL,
+        canceled_at = NULL
+      FROM updated
+      WHERE occurrence.quiz_session_id = updated.id
+      RETURNING occurrence.id
     ), written_audit AS (
       INSERT INTO ${auditLogs} (
         admin_user_id, action, entity_type, entity_id, metadata, created_at
@@ -450,7 +466,12 @@ async function resetToDraft(
         'SESSION_RESET_DRAFT',
         'quiz_session',
         updated.id,
-        jsonb_build_object('from', 'READY', 'to', 'DRAFT'),
+        jsonb_build_object(
+          'from', 'READY',
+          'to', 'DRAFT',
+          'environment', (SELECT environment FROM state),
+          'resetQuestions', (SELECT count(*) FROM reset_questions)
+        ),
         ${now}
       FROM updated
       RETURNING id

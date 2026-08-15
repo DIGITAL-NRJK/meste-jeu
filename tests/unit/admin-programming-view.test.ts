@@ -129,6 +129,7 @@ describe("AdminProgrammingView", () => {
                 id: "00000000-0000-4000-8000-000000000007",
                 questionId: question.id,
                 questionText: question.questionText,
+                questionStatus: "VALIDATED",
                 position: 1,
                 durationSeconds: 30,
                 status: "PENDING",
